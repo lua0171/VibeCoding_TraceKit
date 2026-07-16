@@ -35,6 +35,8 @@ A user can complete a usability study and receive actionable AI-generated insigh
 * Cloud-based data collection
 * User behavior tracking outside usability studies
 
+*Note: BYOK (bring-your-own-key) external AI providers (see Section 4/5) are an explicit, opt-in exception to "no data leaves the device" — disabled by default, never silently enabled, and always shown with a persistent indicator when active.*
+
 ---
 
 ## 2) UX Foundations (Vibe, Research, Accessibility)
@@ -99,6 +101,7 @@ Review & Export Results
 * Local database
 * Heatmap visualization
 * Local AI hypothesis generation via Ollama
+* Hypothesis validation loop — capture initial hypotheses at study setup, evaluate them against collected data each analysis round, and let researchers close/lock validated ones so analysis doesn't spiral into endless new questions
 - **Out of Scope for V1:**
 * Video recording
 * Mobile optimization
@@ -121,12 +124,14 @@ Review & Export Results
 
 | Layer | Choice |
 |---|---|
-| Frontend | React |
-| Backend | Tailwind CSS |
-| Database | SQLite|
-| Key APIs | Ollama |
-| Deployment | Antigravity |
-| Security/Privacy | local only storage |
+| Frontend | React + Tailwind CSS |
+| Backend | Node.js/Express |
+| Database | SQLite |
+| Local AI | Ollama (default, fully local) |
+| BYOK AI (optional) | Any OpenAI-compatible endpoint (base URL + API key + model name) — one generic adapter covers OpenAI, Groq, OpenRouter, etc. |
+| Deployment | Runs entirely on the researcher's own device (Antigravity as the vibe-coding dev platform). No cloud hosting required for the core product. |
+| Remote participants | Optional ngrok tunnel exposes the local instance temporarily; data still only round-trips to the researcher's machine, never third-party cloud storage |
+| Security/Privacy | Local-only by default; BYOK is opt-in per study, requires explicit consent, and shows a persistent "External AI Active" indicator while enabled |
 
 ---
 
@@ -140,6 +145,7 @@ Review & Export Results
 * Study creation page
 * Study title
 * Description
+* Optional initial hypotheses list (free text; evaluated against collected data in later analysis rounds, see Hypothesis Validation Loop module)
 * Save locally
 * Edit study
 * Delete study
@@ -184,7 +190,7 @@ Review & Export Results
 * Zoom
 * Filter participants
 
-### Module #: AI Hyphothesis Generator
+### Module #: AI Hypothesis Generator
 
 - **Priority:** P0 
 - **User Story:** "As a researcher, I want AI-generated UX hypotheses supported by evidence."
@@ -194,12 +200,33 @@ Review & Export Results
 * Confidence score
 * Linked evidence
 
+### Module #: Hypothesis Validation Loop (Closing the Loop)
+
+- **Priority:** P0
+- **User Story:** "As a researcher, I want to check my own assumptions against the data and lock in what's confirmed, so analysis doesn't spiral into endless new questions."
+- **Acceptance Criteria — To-Prompt Checklist:**
+* Two-pass analysis per run: a biased pass evaluates every currently open hypothesis (initial + carried over from prior rounds) against the data — confirmed / refuted / inconclusive, with confidence and evidence; an unbiased pass generates new hypotheses from the raw data only, with no knowledge of the open hypotheses
+* Rule-based merge (no extra LLM call): Pass-1 verdicts update existing hypotheses; Pass-2 findings are deduplicated against existing evidence and either fold into an existing hypothesis or get added as new
+* Combined hypothesis list tagged by origin ("Confirms/refutes hypothesis X" vs. "New finding")
+* Hypotheses above a confidence threshold are flagged "Ready to close"; researcher must actively confirm closing (never auto-closed)
+* Closed hypotheses are excluded from future biased passes but remain visible in the study and in exports with a "Locked" badge
+
+### Module #: AI Provider Settings (BYOK)
+
+- **Priority:** P1
+- **User Story:** "As a researcher, I want to optionally use my own AI provider's API key instead of local Ollama."
+- **Acceptance Criteria — To-Prompt Checklist:**
+* Provider choice: Ollama (default, local) or a generic OpenAI-compatible endpoint (base URL, API key, model name)
+* Explicit consent dialog the first time a non-Ollama provider is activated, stating that interaction/survey data will leave the device
+* Persistent header indicator ("External AI Active") whenever a non-Ollama provider is enabled, replacing the default "Local-Only Sandbox" state
+* API key stored locally only, never synced or transmitted anywhere except the configured endpoint
+
 ### Module #: Export result
 
 - **Priority:** P1
 - **User Story:** "As a researcher, I want to share my results."
 - **Acceptance Criteria — To-Prompt Checklist:**
-* Export PDF
+* Export a single PDF containing: study summary, heatmap per prototype screen, full hypothesis list (closed hypotheses with their verdict, open ones flagged "unresolved"), each with confidence, origin, and evidence reference, and the survey response summary
 * Export screenshots
 * Export AI summary
 
@@ -208,12 +235,17 @@ Review & Export Results
 ## 6) AI Design & Prompting Strategy
 
 - **System Prompt:**
-“You are a UX research assistant. Analyze usability testing data objectively. Generate evidence-based UX hypotheses only from the provided interaction data. Explain confidence levels and reference supporting user behavior.”
+“You are a UX research assistant. Analyze usability testing data objectively. Generate evidence-based UX hypotheses only from the provided interaction data. Explain confidence levels and reference supporting user behavior.” Reused unchanged regardless of provider (Ollama or BYOK) — only the model/endpoint changes, not the prompting strategy.
+- **Hypothesis Loop — Two-Pass Strategy:**
+* Pass 1 (biased): system prompt above + the current list of open hypotheses (initial + carried over from prior rounds). Task: judge each as confirmed / refuted / inconclusive, with confidence and cited evidence. Never sees Pass 2's output.
+* Pass 2 (unbiased): system prompt above + raw interaction data only. No mention of open hypotheses. Task: generate new hypotheses purely from the data, same as today.
+* Merge is rule-based (not a third LLM call), to stay fast (Ollama performance budget) and keep every statement traceable to the pass that produced it.
 - **Prompt Bank (TACO examples):**
 * Analyze click patterns.
 * Identify usability bottlenecks.
 * Summarize survey responses.
 * Generate UX improvement hypotheses.
+* Evaluate a given hypothesis against the data (biased pass).
 * Explain confidence score.
 - **Reasoning Boosters (CoT, ToT, Meta):**
 * Chain of Thought
@@ -225,7 +257,8 @@ Review & Export Results
 * Reference actual click data.
 * Provide confidence estimates.
 * Explain uncertainty.
-* Process all data locally.
+* Process all data locally by default; BYOK sends data externally only with explicit, per-provider consent.
+* Keep the biased and unbiased passes strictly independent so the model isn't nudged to only confirm existing assumptions.
 - **Vibe-Coding History:**
 Development is documented using AI-assisted coding sessions, including prompt history and implementation decisions.
 
