@@ -1,19 +1,15 @@
 import { useState } from 'react';
 import { Dashboard } from './components/Dashboard';
-import { CreateStudyPlaceholder } from './components/CreateStudyPlaceholder';
+import { StudyConfiguration } from './components/StudyConfiguration';
+import { StudyDesignPage } from './components/StudyDesignPage';
 import { ShieldCheck } from 'lucide-react';
 
-type View = 'dashboard' | 'create-study';
+type View = 'dashboard' | 'create-study' | 'study-design';
 
 function App() {
   const [view, setView] = useState<View>('dashboard');
+  const [selectedStudyId, setSelectedStudyId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  const handleStudyCreated = () => {
-    // Increment trigger to reload studies in the dashboard
-    setRefreshTrigger(prev => prev + 1);
-    setView('dashboard');
-  };
 
   return (
     <>
@@ -40,12 +36,24 @@ function App() {
         {view === 'dashboard' ? (
           <Dashboard 
             onCreateNewStudy={() => setView('create-study')} 
+            onNavigateToStudyDesign={(studyId) => {
+              setSelectedStudyId(studyId);
+              setView('study-design');
+            }}
             refreshTrigger={refreshTrigger}
           />
-        ) : (
-          <CreateStudyPlaceholder 
+        ) : view === 'create-study' ? (
+          <StudyConfiguration 
             onBack={() => setView('dashboard')} 
-            onStudyCreated={handleStudyCreated}
+          />
+        ) : (
+          <StudyDesignPage 
+            studyId={selectedStudyId || ''} 
+            onBack={() => {
+              setSelectedStudyId(null);
+              setRefreshTrigger(prev => prev + 1);
+              setView('dashboard');
+            }}
           />
         )}
       </main>

@@ -150,27 +150,28 @@ Review & Export Results
 * Edit study
 * Delete study
 
-### Module #: Figma Prototype Embed
+### Module 1: Figma Prototype Embed
 
 - **Priority:** P0 
 - **User Story:** "As a researcher, I want to embed my Figma prototype so participants can interact with it."
 - **Acceptance Criteria — To-Prompt Checklist:**
 * Paste Figma URL
 * Embedded prototype loads
-* Responsive viewer
+* (Responsive viewer)
 * Error handling
 
-### Module #: Survey Builder
+### Module 2: Survey Builder
 
 - **Priority:** P0 
-- **User Story:** "As a researcher, I want to ask questions before and after the test."
+- **User Story:** "As a researcher, I want to be able to embed my prototype and formulate questions that the participant can answer before and after the test."
 - **Acceptance Criteria — To-Prompt Checklist:**
 * Pre-study survey
 * Post-study survey
 * Multiple question types
 * Local storage
+* Embed Prototype
 
-### Module #: Click Tracking
+### Module 3: Click Tracking
 
 - **Priority:** P0 
 - **User Story:** "As a researcher, I want participant interactions to be recorded automatically."
@@ -180,7 +181,7 @@ Review & Export Results
 * Record navigation path
 * Local storage only
 
-### Module #: Heatmap Visualization
+### Module 4: Heatmap Visualization
 
 - **Priority:** P0 
 - **User Story:** "As a researcher, I want visual representations of user behavior."
@@ -190,7 +191,7 @@ Review & Export Results
 * Zoom
 * Filter participants
 
-### Module #: AI Hypothesis Generator
+### Module 5: AI Hypothesis Generator
 
 - **Priority:** P0 
 - **User Story:** "As a researcher, I want AI-generated UX hypotheses supported by evidence."
@@ -200,7 +201,7 @@ Review & Export Results
 * Confidence score
 * Linked evidence
 
-### Module #: Hypothesis Validation Loop (Closing the Loop)
+### Module 6: Hypothesis Validation Loop (Closing the Loop)
 
 - **Priority:** P0
 - **User Story:** "As a researcher, I want to check my own assumptions against the data and lock in what's confirmed, so analysis doesn't spiral into endless new questions."
@@ -211,7 +212,7 @@ Review & Export Results
 * Hypotheses above a confidence threshold are flagged "Ready to close"; researcher must actively confirm closing (never auto-closed)
 * Closed hypotheses are excluded from future biased passes but remain visible in the study and in exports with a "Locked" badge
 
-### Module #: AI Provider Settings (BYOK)
+### Module 7: AI Provider Settings (BYOK)
 
 - **Priority:** P1
 - **User Story:** "As a researcher, I want to optionally use my own AI provider's API key instead of local Ollama."
@@ -221,7 +222,7 @@ Review & Export Results
 * Persistent header indicator ("External AI Active") whenever a non-Ollama provider is enabled, replacing the default "Local-Only Sandbox" state
 * API key stored locally only, never synced or transmitted anywhere except the configured endpoint
 
-### Module #: Export result
+### Module 8: Export result
 
 - **Priority:** P1
 - **User Story:** "As a researcher, I want to share my results."

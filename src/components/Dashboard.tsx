@@ -6,11 +6,13 @@ import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 interface DashboardProps {
   onCreateNewStudy: () => void;
   refreshTrigger: number;
+  onNavigateToStudyDesign: (studyId: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   onCreateNewStudy,
   refreshTrigger,
+  onNavigateToStudyDesign,
 }) => {
   const [studies, setStudies] = useState<Study[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -461,7 +463,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <div className="study-frames-grid">
                 <div 
                   className="study-frame-card"
-                  onClick={() => alert("Study Design editor flow will be implemented in Module 2.")}
+                  onClick={() => {
+                    setSelectedStudy(null);
+                    onNavigateToStudyDesign(selectedStudy.id);
+                  }}
                 >
                   <div className="study-frame-preview">
                     <div className="mock-canvas">
