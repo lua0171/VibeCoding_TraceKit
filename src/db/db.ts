@@ -69,8 +69,19 @@ export interface Session {
   events: TrackedEvent[];
 }
 
+export interface Hypothesis {
+  id: string;
+  studyId: string;
+  content: string;
+  status: 'open' | 'confirmed' | 'refuted' | 'inconclusive' | 'closed';
+  origin: 'initial' | 'ai';
+  confidenceScore: number;
+  evidence: string[];
+}
+
 const STORAGE_KEY = 'tracekit_studies';
 const SESSIONS_STORAGE_KEY = 'tracekit_sessions';
+const HYPOTHESES_STORAGE_KEY = 'tracekit_hypotheses';
 const DELAY_MS = 400; // simulated network/DB query latency
 
 // Helper to simulate delay
@@ -172,6 +183,23 @@ const getRawSessions = (): Session[] => {
 // Helper to save sessions to localStorage
 const saveRawSessions = (sessions: Session[]) => {
   localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
+};
+
+// Helper to get hypotheses from localStorage
+const getRawHypotheses = (): Hypothesis[] => {
+  const data = localStorage.getItem(HYPOTHESES_STORAGE_KEY);
+  if (!data) return [];
+  try {
+    return JSON.parse(data);
+  } catch (e) {
+    console.error('Error parsing stored hypotheses:', e);
+    return [];
+  }
+};
+
+// Helper to save hypotheses to localStorage
+const saveRawHypotheses = (hypotheses: Hypothesis[]) => {
+  localStorage.setItem(HYPOTHESES_STORAGE_KEY, JSON.stringify(hypotheses));
 };
 
 export const db = {
@@ -291,5 +319,31 @@ export const db = {
   async getSessionsByStudy(studyId: string): Promise<Session[]> {
     await delay(DELAY_MS);
     return getRawSessions().filter(s => s.studyId === studyId);
+  },
+
+  /**
+   * Fetch hypotheses for a study
+   */
+  async getHypothesesByStudy(studyId: string): Promise<Hypothesis[]> {
+    await delay(DELAY_MS);
+    return getRawHypotheses().filter(h => h.studyId === studyId);
+  },
+
+  /**
+   * Save a list of hypotheses (creates or updates them based on ID)
+   */
+  async saveHypotheses(hypotheses: Hypothesis[]): Promise<void> {
+    await delay(DELAY_MS);
+    const existing = getRawHypotheses();
+    const map = new Map(hypotheses.map(h => [h.id, h]));
+    
+    const updated = existing.map(h => map.has(h.id) ? map.get(h.id)! : h);
+    
+    for (const h of hypotheses) {
+      if (!existing.some(e => e.id === h.id)) {
+        updated.push(h);
+      }
+    }
+    saveRawHypotheses(updated);
   }
 };

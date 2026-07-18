@@ -8,12 +8,14 @@ interface DashboardProps {
   onNavigateToStudyConfiguration: (studyId: string) => void;
   refreshTrigger: number;
   onNavigateToStudyDesign: (studyId: string) => void;
+  onNavigateToStudyResults: (studyId: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   onNavigateToStudyConfiguration,
   refreshTrigger,
   onNavigateToStudyDesign,
+  onNavigateToStudyResults,
 }) => {
   const [studies, setStudies] = useState<Study[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -543,7 +545,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 <div 
                   className="study-frame-card"
-                  onClick={() => alert("Study Results analytics flow will be implemented in Module 5.")}
+                  onClick={() => {
+                    const studyId = selectedStudy.id;
+                    setSelectedStudy(null);
+                    onNavigateToStudyResults(studyId);
+                  }}
                 >
                   <div className="study-frame-preview">
                     <div className="mock-heatmap">

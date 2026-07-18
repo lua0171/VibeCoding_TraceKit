@@ -4,9 +4,10 @@ import { StudyConfiguration } from './components/StudyConfiguration';
 import { StudyDesignPage } from './components/StudyDesignPage';
 import { CreateStudyPage } from './components/CreateStudyPage';
 import { ParticipantSession } from './components/ParticipantSession';
+import { StudyResultsPage } from './components/StudyResultsPage';
 import { ShieldCheck } from 'lucide-react';
 
-type View = 'dashboard' | 'create-study' | 'configure-study' | 'study-design';
+type View = 'dashboard' | 'create-study' | 'configure-study' | 'study-design' | 'study-results';
 
 function App() {
   const [view, setView] = useState<View>('dashboard');
@@ -50,7 +51,11 @@ function App() {
             }}
             onNavigateToStudyDesign={(studyId) => {
               setSelectedStudyId(studyId);
-              setView('configure-study');
+              setView('study-design');
+            }}
+            onNavigateToStudyResults={(studyId) => {
+              setSelectedStudyId(studyId);
+              setView('study-results');
             }}
             refreshTrigger={refreshTrigger}
           />
@@ -73,8 +78,17 @@ function App() {
               setView('dashboard');
             }}
           />
-        ) : (
+        ) : view === 'study-design' ? (
           <StudyDesignPage 
+            studyId={selectedStudyId || ''} 
+            onBack={() => {
+              setSelectedStudyId(null);
+              setRefreshTrigger(prev => prev + 1);
+              setView('dashboard');
+            }}
+          />
+        ) : (
+          <StudyResultsPage 
             studyId={selectedStudyId || ''} 
             onBack={() => {
               setSelectedStudyId(null);
