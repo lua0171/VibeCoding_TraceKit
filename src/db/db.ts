@@ -7,6 +7,7 @@ export interface Study {
   completedParticipants: number;
   minParticipants: number;
   figmaUrl?: string;
+  initialHypotheses?: string;
   preSurveyQuestions?: any[];
   postSurveyQuestions?: any[];
 }

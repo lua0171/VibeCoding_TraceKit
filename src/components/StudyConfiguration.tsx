@@ -10,6 +10,7 @@ interface StudyConfigurationProps {
 export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ onBack, onStudyCreated }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [initialHypotheses, setInitialHypotheses] = useState('');
   const [titleError, setTitleError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -21,7 +22,11 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ onBack, 
     setTitleError('');
     setIsSaving(true);
     try {
-      const study = await db.createStudy({ title: title.trim(), description: description.trim() });
+      const study = await db.createStudy({ 
+        title: title.trim(), 
+        description: description.trim(),
+        initialHypotheses: initialHypotheses.trim()
+      });
       onStudyCreated(study.id);
     } catch (e) {
       console.error('Failed to create study:', e);
@@ -119,6 +124,21 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ onBack, 
               placeholder="What are you testing and why?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              disabled={isSaving}
+              style={{ minHeight: '80px' }}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="study-hypotheses" className="form-label" style={{ fontWeight: 600 }}>
+              Initial Hypotheses <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(Optional)</span>
+            </label>
+            <textarea
+              id="study-hypotheses"
+              className="form-control"
+              placeholder="List any assumptions you have (e.g. 'Users will struggle to find the pricing page', 'The primary CTA is clear'). We will validate these against the collected data."
+              value={initialHypotheses}
+              onChange={(e) => setInitialHypotheses(e.target.value)}
               disabled={isSaving}
               style={{ minHeight: '80px' }}
             />
