@@ -43,8 +43,13 @@ function App() {
             refreshTrigger={refreshTrigger}
           />
         ) : view === 'create-study' ? (
-          <StudyConfiguration 
-            onBack={() => setView('dashboard')} 
+          <StudyConfiguration
+            onBack={() => setView('dashboard')}
+            onStudyCreated={(studyId) => {
+              setSelectedStudyId(studyId);
+              setRefreshTrigger(prev => prev + 1);
+              setView('study-design');
+            }}
           />
         ) : (
           <StudyDesignPage 

@@ -4,15 +4,18 @@ Privacy-first, local-only usability testing tool (Figma embed + click tracking +
 
 **Full product concept, personas, scope, and feature spec: see [PRD.md](PRD.md).** Don't duplicate that content here — this file only covers what the PRD doesn't: where the code actually stands, and repo-specific quirks.
 
-## Current implementation status (as of 2026-07-16)
+## Current implementation status (as of 2026-07-18)
 
 The codebase is a frontend-only scaffold, well behind the PRD's target stack:
 
 - **Stack in place:** React 19 + Vite + TypeScript, `oxlint` for linting. No Tailwind CSS installed (styling is a hand-written CSS custom-property system in `src/index.css`, e.g. `var(--primary)`, `var(--radius-md)` — despite the PRD listing Tailwind). No backend, no SQLite, no Ollama integration yet.
 - **"Database":** `src/db/db.ts` is a `localStorage`-backed mock with a simulated 400ms delay, seeded with 3 fake studies on first load. It stands in for the planned Node/Express + SQLite backend.
-- **Built:** basic app shell ([App.tsx](src/App.tsx)), a Dashboard ([Dashboard.tsx](src/components/Dashboard.tsx)) with study list/search/inline-edit/delete, and a Study Creation placeholder ([CreateStudyPlaceholder.tsx](src/components/CreateStudyPlaceholder.tsx)) that only injects a random mock study — no real form (no Figma URL field, no tasks, no survey, no initial-hypotheses field yet).
-- **Not started:** Figma embed, click tracking, survey builder, heatmap visualization, AI hypothesis generator (incl. the two-pass hypothesis validation loop), BYOK provider settings, PDF export.
-- **Dead code:** `src/components/EditStudyModal.tsx` is not imported anywhere — inline editing moved directly into `Dashboard.tsx`. Safe to delete or revive, just don't assume it's wired up.
+- **Built:** basic app shell ([App.tsx](src/App.tsx)), a Dashboard ([Dashboard.tsx](src/components/Dashboard.tsx)) with study list/search/inline-edit/delete, a Study Configuration form ([StudyConfiguration.tsx](src/components/StudyConfiguration.tsx)) for title/description, and a working Figma prototype embed page ([StudyDesignPage.tsx](src/components/StudyDesignPage.tsx)).
+- **Creating a new study works again:** `StudyConfiguration.tsx` now has real Title (required) and Description fields wired to `db.createStudy`, with inline validation if the title is empty. On save it navigates straight to the new study's `StudyDesignPage` (Figma embed) and bumps the Dashboard's `refreshTrigger`. (This was broken between the module-2 commit and this fix — the old working quick-create flow, `CreateStudyPlaceholder.tsx`, is dead code now.)
+- **Figma embed (Module 1) is real, not a placeholder:** `StudyDesignPage.tsx` (reached via a study's "Study Design" card, or automatically right after creating a study) validates a `figma.com` URL, persists it with `db.updateStudy`, and renders a live `<iframe>` embed with a desktop/mobile/tablet viewport toggle. No click-tracking overlay yet, and this view is researcher-facing only — there's no separate participant-facing test-session flow yet.
+- **`StudyConfiguration.tsx`'s** other three sections (pre-study questions, prototype embed — duplicating what `StudyDesignPage.tsx` already does for real, post-study questions) are still pure visual placeholders, not persisted.
+- **Not started:** click tracking, survey builder (real, not placeholder), heatmap visualization, AI hypothesis generator (incl. the two-pass hypothesis validation loop), BYOK provider settings, PDF export.
+- **Dead code:** `src/components/EditStudyModal.tsx` and `src/components/CreateStudyPlaceholder.tsx` are no longer imported anywhere. Safe to delete or revive, just don't assume either is wired up.
 
 ## Conventions observed so far
 
