@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Play, Lock, CheckCircle, XCircle, AlertCircle, Sparkles } from 'lucide-react';
+import { ArrowLeft, Play, Lock, CheckCircle, XCircle, AlertCircle, Sparkles, Download } from 'lucide-react';
 import { db, type Hypothesis, type Study } from '../db/db';
 import { runAnalysisLoop } from '../lib/analysis';
 import { HeatmapDemo } from './HeatmapDemo'; // Placeholder for the actual dynamic heatmap
@@ -66,27 +66,35 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
   };
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+    <div className="study-results-container" style={{ animation: 'fadeIn 0.3s ease-out' }}>
       {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
+      <div className="results-header" style={{ marginBottom: '32px' }}>
         <button 
-          className="btn btn-secondary" 
+          className="btn btn-secondary no-print" 
           onClick={onBack} 
           style={{ marginBottom: '16px' }}
         >
           <ArrowLeft size={16} /> Back to Dashboard
         </button>
-        <div>
-          <h1 style={{ fontSize: '28px', marginTop: '2px', letterSpacing: '-0.5px' }}>
-            Results: {study.title}
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
-            Analyze click heatmaps and run the AI validation loop against your initial hypotheses.
-          </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h1 style={{ fontSize: '28px', marginTop: '2px', letterSpacing: '-0.5px' }}>
+              Results: {study.title}
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
+              {study.description}
+            </p>
+          </div>
+          <button 
+            className="btn btn-primary no-print"
+            onClick={() => window.print()}
+          >
+            <Download size={16} /> Export to PDF
+          </button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      <div className="results-content" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
         
         {/* Heatmaps Area */}
         <section style={{
@@ -104,7 +112,7 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
         </section>
 
         {/* AI Hypothesis Loop */}
-        <section style={{
+        <section className="print-break-before" style={{
           backgroundColor: 'var(--card-bg)',
           border: '1px solid var(--border)',
           borderRadius: 'var(--radius-md)',
@@ -123,7 +131,7 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
             </div>
             
             <button 
-              className="btn btn-primary"
+              className="btn btn-primary no-print"
               onClick={handleRunAnalysis}
               disabled={isRunning}
             >
@@ -132,13 +140,13 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
           </div>
 
           {error && (
-            <div style={{ padding: '12px', backgroundColor: 'var(--error-bg)', color: 'var(--error)', borderRadius: 'var(--radius-sm)', marginBottom: '16px', fontSize: '13px' }}>
+            <div className="no-print" style={{ padding: '12px', backgroundColor: 'var(--error-bg)', color: 'var(--error)', borderRadius: 'var(--radius-sm)', marginBottom: '16px', fontSize: '13px' }}>
               {error}
             </div>
           )}
 
           {hypotheses.length === 0 && !isRunning && (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', border: '1px dashed var(--border)', borderRadius: 'var(--radius-md)' }}>
+            <div className="no-print" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', border: '1px dashed var(--border)', borderRadius: 'var(--radius-md)' }}>
               No hypotheses generated or seeded yet. Click "Run AI Analysis Loop" to start.
             </div>
           )}
@@ -164,7 +172,8 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
                           {h.origin === 'initial' ? 'User Generated' : 'AI Discovery'}
                         </span>
                         <span>Confidence: {h.confidenceScore}%</span>
-                        <span style={{ textTransform: 'capitalize' }}>Status: {h.status}</span>
+                        <span className="print-hide" style={{ textTransform: 'capitalize' }}>Status: {h.status}</span>
+                        {h.status === 'open' && <span className="print-only-inline" style={{ textTransform: 'capitalize', color: 'var(--warning)', fontWeight: 600 }}>Status: Unresolved</span>}
                       </div>
                       
                       {h.evidence && h.evidence.length > 0 && (
@@ -180,7 +189,7 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
 
                   {h.status !== 'closed' && h.confidenceScore > 80 && (
                     <button 
-                      className="btn btn-secondary"
+                      className="btn btn-secondary no-print"
                       onClick={() => handleLock(h.id)}
                       style={{ fontSize: '12px', padding: '6px 10px', height: 'auto' }}
                     >
