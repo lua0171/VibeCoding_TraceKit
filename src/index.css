@@ -876,3 +876,10 @@ textarea.form-control {
 .bar-1 { height: 40%; }
 .bar-2 { height: 80%; }
 .bar-3 { height: 60%; }
+
+/* Active Viewport Toolbar Button */
+.active-viewport-btn {
+  background-color: var(--primary) !important;
+  color: var(--text-inverse) !important;
+  border-color: var(--primary) !important;
+}
