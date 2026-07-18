@@ -5,7 +5,10 @@ import { StudyDesignPage } from './components/StudyDesignPage';
 import { CreateStudyPage } from './components/CreateStudyPage';
 import { ParticipantSession } from './components/ParticipantSession';
 import { StudyResultsPage } from './components/StudyResultsPage';
-import { ShieldCheck } from 'lucide-react';
+import { SettingsModal } from './components/SettingsModal';
+import { ShieldCheck, Globe, Settings } from 'lucide-react';
+import { getAiConfig } from './lib/config';
+import { useEffect } from 'react';
 
 type View = 'dashboard' | 'create-study' | 'configure-study' | 'study-design' | 'study-results';
 
@@ -13,6 +16,16 @@ function App() {
   const [view, setView] = useState<View>('dashboard');
   const [selectedStudyId, setSelectedStudyId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isExternalAi, setIsExternalAi] = useState(() => getAiConfig().providerType === 'openai-compatible');
+
+  useEffect(() => {
+    const handleConfigChange = () => {
+      setIsExternalAi(getAiConfig().providerType === 'openai-compatible');
+    };
+    window.addEventListener('ai-config-changed', handleConfigChange);
+    return () => window.removeEventListener('ai-config-changed', handleConfigChange);
+  }, []);
 
   // Participant links (?session=<studyId>) bypass the researcher app entirely —
   // no header, no dashboard access, just the tracked test session.
@@ -34,9 +47,25 @@ function App() {
             <span className="brand-badge">v0.1</span>
           </a>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--success)' }}>
-            <ShieldCheck size={16} />
-            <span style={{ fontWeight: 500 }}>Local-Only Sandbox</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {isExternalAi ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--warning)', backgroundColor: 'var(--warning-bg)', padding: '4px 10px', borderRadius: '100px', fontWeight: 600 }}>
+                <Globe size={14} /> External AI Active
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--success)' }}>
+                <ShieldCheck size={16} />
+                <span style={{ fontWeight: 500 }}>Local-Only Sandbox</span>
+              </div>
+            )}
+            
+            <button 
+              onClick={() => setIsSettingsOpen(true)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              aria-label="Settings"
+            >
+              <Settings size={18} />
+            </button>
           </div>
         </div>
       </header>
@@ -98,6 +127,11 @@ function App() {
           />
         )}
       </main>
+
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+      />
     </>
   );
 }

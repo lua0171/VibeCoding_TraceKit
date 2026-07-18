@@ -1,4 +1,4 @@
-import { generateFromOllama } from './ai';
+import { generateFromAi } from './ai';
 import { db, type Hypothesis, type Session } from '../db/db';
 
 /**
@@ -76,7 +76,7 @@ export async function runAnalysisLoop(studyId: string): Promise<Hypothesis[]> {
     `;
 
     try {
-      const p1Raw = await generateFromOllama(p1Prompt, p1System);
+      const p1Raw = await generateFromAi(p1Prompt, p1System);
       const p1Data: Pass1Result = JSON.parse(p1Raw);
 
       // Merge Pass 1 evaluations into our working set
@@ -110,7 +110,7 @@ export async function runAnalysisLoop(studyId: string): Promise<Hypothesis[]> {
     `;
 
     try {
-      const p2Raw = await generateFromOllama(p2Prompt, p2System);
+      const p2Raw = await generateFromAi(p2Prompt, p2System);
       const p2Data: Pass2Result = JSON.parse(p2Raw);
 
       // Merge Pass 2 discoveries into our working set
