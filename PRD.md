@@ -176,10 +176,11 @@ Review & Export Results
 - **Priority:** P0 
 - **User Story:** "As a researcher, I want participant interactions to be recorded automatically."
 - **Acceptance Criteria — To-Prompt Checklist:**
-* Record clicks
+* Record clicks (via Figma's Embed Kit 2.0 `MOUSE_PRESS_OR_RELEASE` event: target node, position, whether a hotspot was hit)
 * Record timestamps
-* Record navigation path
+* Record navigation path (via `PRESENTED_NODE_CHANGED` events, chained into from/to node pairs)
 * Local storage only
+* Dedicated participant link/session (no dashboard access) that a researcher can copy and share, since tracking only makes sense for genuine participant runs, not the researcher's own preview
 
 ### Module 4: Heatmap Visualization
 

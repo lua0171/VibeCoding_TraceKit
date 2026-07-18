@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, Monitor, Smartphone, Tablet, Shield, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Monitor, Smartphone, Tablet, Shield, Loader2, AlertCircle, Link2, Check } from 'lucide-react';
 import { db, type Study } from '../db/db';
+import { getEmbedUrl, isValidFigmaUrl } from '../lib/figma';
 
 interface StudyDesignPageProps {
   studyId: string;
@@ -20,6 +21,7 @@ export const StudyDesignPage: React.FC<StudyDesignPageProps> = ({
   const [iframeLoading, setIframeLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [viewport, setViewport] = useState<ViewportSize>('desktop');
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Load study details
   useEffect(() => {
@@ -44,26 +46,6 @@ export const StudyDesignPage: React.FC<StudyDesignPageProps> = ({
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFigmaUrl(e.target.value);
     if (feedback) setFeedback(null);
-  };
-
-  // Convert standard Figma links to official embed URLs
-  const getEmbedUrl = (url: string): string => {
-    if (!url) return '';
-    if (url.includes('figma.com/embed')) {
-      return url;
-    }
-    return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(url)}`;
-  };
-
-  // Check if URL is valid Figma link
-  const isValidFigmaUrl = (url: string): boolean => {
-    if (!url) return false;
-    try {
-      const parsed = new URL(url);
-      return parsed.hostname.endsWith('figma.com');
-    } catch (_) {
-      return false;
-    }
   };
 
   // Handle Save
@@ -108,6 +90,13 @@ export const StudyDesignPage: React.FC<StudyDesignPageProps> = ({
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleCopyParticipantLink = async () => {
+    const link = `${window.location.origin}${window.location.pathname}?session=${studyId}`;
+    await navigator.clipboard.writeText(link);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
   };
 
   // Trigger iframe loader trigger on src change
@@ -227,6 +216,22 @@ export const StudyDesignPage: React.FC<StudyDesignPageProps> = ({
           }}>
             <AlertCircle size={16} />
             <span>{feedback.text}</span>
+          </div>
+        )}
+
+        {study.figmaUrl && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleCopyParticipantLink}
+            >
+              {linkCopied ? <Check size={16} /> : <Link2 size={16} />}
+              {linkCopied ? 'Link copied!' : 'Copy Participant Link'}
+            </button>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              Share this with participants to start a tracked session.
+            </span>
           </div>
         )}
       </div>

@@ -11,7 +11,29 @@ export interface Study {
   postSurveyQuestions?: any[];
 }
 
+export interface TrackedEvent {
+  type: 'click' | 'navigation';
+  nodeId: string;
+  timestamp: string;
+  // click-only
+  x?: number;
+  y?: number;
+  isHotspot?: boolean;
+  // navigation-only
+  fromNodeId?: string;
+  toNodeId?: string;
+}
+
+export interface Session {
+  id: string;
+  studyId: string;
+  startedAt: string;
+  endedAt?: string;
+  events: TrackedEvent[];
+}
+
 const STORAGE_KEY = 'tracekit_studies';
+const SESSIONS_STORAGE_KEY = 'tracekit_sessions';
 const DELAY_MS = 400; // simulated network/DB query latency
 
 // Helper to simulate delay
@@ -65,6 +87,23 @@ const getRawStudies = (): Study[] => {
 // Helper to save to localStorage
 const saveRawStudies = (studies: Study[]) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(studies));
+};
+
+// Helper to get sessions from localStorage
+const getRawSessions = (): Session[] => {
+  const data = localStorage.getItem(SESSIONS_STORAGE_KEY);
+  if (!data) return [];
+  try {
+    return JSON.parse(data);
+  } catch (e) {
+    console.error('Error parsing stored sessions:', e);
+    return [];
+  }
+};
+
+// Helper to save sessions to localStorage
+const saveRawSessions = (sessions: Session[]) => {
+  localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
 };
 
 export const db = {
@@ -137,5 +176,52 @@ export const db = {
     }
     saveRawStudies(filtered);
     return true;
+  },
+
+  /**
+   * Start a new tracked session for a study
+   */
+  async createSession(studyId: string): Promise<Session> {
+    const sessions = getRawSessions();
+    const newSession: Session = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+      studyId,
+      startedAt: new Date().toISOString(),
+      events: [],
+    };
+    sessions.push(newSession);
+    saveRawSessions(sessions);
+    return newSession;
+  },
+
+  /**
+   * Append a tracked event to a session. No artificial delay: clicks can
+   * fire in quick succession and shouldn't be throttled by the mock latency.
+   */
+  async appendEvent(sessionId: string, event: TrackedEvent): Promise<void> {
+    const sessions = getRawSessions();
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+    session.events.push(event);
+    saveRawSessions(sessions);
+  },
+
+  /**
+   * Mark a session as finished
+   */
+  async endSession(sessionId: string): Promise<void> {
+    const sessions = getRawSessions();
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+    session.endedAt = new Date().toISOString();
+    saveRawSessions(sessions);
+  },
+
+  /**
+   * Fetch all sessions recorded for a study
+   */
+  async getSessionsByStudy(studyId: string): Promise<Session[]> {
+    await delay(DELAY_MS);
+    return getRawSessions().filter(s => s.studyId === studyId);
   }
 };
