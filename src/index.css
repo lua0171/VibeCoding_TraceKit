@@ -18,6 +18,8 @@
   --error: hsl(0, 84%, 60%);
   --error-bg: hsl(0, 84%, 97%);
   --error-hover: hsl(0, 84%, 52%);
+  --warning: hsl(35, 92%, 40%);
+  --warning-bg: hsl(35, 92%, 97%);
   
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
@@ -52,6 +54,8 @@
     --error: hsl(0, 84%, 65%);
     --error-bg: hsl(0, 85%, 15%);
     --error-hover: hsl(0, 84%, 72%);
+    --warning: hsl(35, 92%, 58%);
+    --warning-bg: hsl(35, 90%, 15%);
     
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
@@ -882,4 +886,39 @@ textarea.form-control {
   background-color: var(--primary) !important;
   color: var(--text-inverse) !important;
   border-color: var(--primary) !important;
+}
+
+/* Hide number input spinners for custom button steppers */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* More Details Modal Action Button */
+.btn-more-details {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: var(--transition);
+}
+
+.btn-more-details:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+  background-color: var(--bg);
+  color: var(--text);
 }

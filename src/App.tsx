@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { StudyConfiguration } from './components/StudyConfiguration';
 import { StudyDesignPage } from './components/StudyDesignPage';
+import { CreateStudyPage } from './components/CreateStudyPage';
 import { ParticipantSession } from './components/ParticipantSession';
 import { ShieldCheck } from 'lucide-react';
 
-type View = 'dashboard' | 'create-study' | 'study-design';
+type View = 'dashboard' | 'create-study' | 'configure-study' | 'study-design';
 
 function App() {
   const [view, setView] = useState<View>('dashboard');
@@ -43,20 +44,33 @@ function App() {
       <main className="main-content">
         {view === 'dashboard' ? (
           <Dashboard 
-            onCreateNewStudy={() => setView('create-study')} 
+            onNavigateToStudyConfiguration={(studyId) => {
+              setSelectedStudyId(studyId);
+              setView('configure-study');
+            }}
             onNavigateToStudyDesign={(studyId) => {
               setSelectedStudyId(studyId);
-              setView('study-design');
+              setView('configure-study');
             }}
             refreshTrigger={refreshTrigger}
           />
         ) : view === 'create-study' ? (
-          <StudyConfiguration
+          <CreateStudyPage
             onBack={() => setView('dashboard')}
             onStudyCreated={(studyId) => {
               setSelectedStudyId(studyId);
               setRefreshTrigger(prev => prev + 1);
-              setView('study-design');
+              setView('configure-study');
+            }}
+          />
+        ) : view === 'configure-study' ? (
+          <StudyConfiguration 
+            studyId={selectedStudyId || ''}
+            mode="edit"
+            onBack={() => {
+              setSelectedStudyId(null);
+              setRefreshTrigger(prev => prev + 1);
+              setView('dashboard');
             }}
           />
         ) : (

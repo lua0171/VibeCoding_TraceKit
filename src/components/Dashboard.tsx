@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, FileText, Edit2, Trash2, Check, X } from 'lucide-react';
+import { Plus, Search, Calendar, FileText, Edit2, Trash2, Check, X, Minus } from 'lucide-react';
 import { db, type Study } from '../db/db';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
+import { CreateStudyModal } from './CreateStudyModal';
 
 interface DashboardProps {
-  onCreateNewStudy: () => void;
+  onNavigateToStudyConfiguration: (studyId: string) => void;
   refreshTrigger: number;
   onNavigateToStudyDesign: (studyId: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
-  onCreateNewStudy,
+  onNavigateToStudyConfiguration,
   refreshTrigger,
   onNavigateToStudyDesign,
 }) => {
@@ -18,10 +19,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Details Modal and Delete state
+  // Details Modal, Delete state, and Create state
   const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
   const [studyToDelete, setStudyToDelete] = useState<Study | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Inline editing states
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -49,6 +51,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
     loadStudies();
   }, [refreshTrigger]);
 
+  // Handle new study creation confirm from modal
+  const handleCreateStudyConfirm = async (studyData: { title: string; description: string; minParticipants: number }) => {
+    try {
+      const newStudy = await db.createStudy(studyData);
+      setIsCreateModalOpen(false);
+      onNavigateToStudyConfiguration(newStudy.id);
+    } catch (e) {
+      console.error('Failed to create study:', e);
+      throw e;
+    }
+  };
+
   // Reset inline edit states when selected study changes
   useEffect(() => {
     setIsEditingTitle(false);
@@ -75,6 +89,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
     } catch (e) {
       return isoString;
     }
+  };
+
+  // Convert standard Figma links to official embed URLs
+  const getEmbedUrl = (url: string): string => {
+    if (!url) return '';
+    if (url.includes('figma.com/embed')) {
+      return url;
+    }
+    return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(url)}`;
   };
 
   // Filter studies based on search query
@@ -191,7 +214,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           />
         </div>
 
-        <button className="btn btn-primary" onClick={onCreateNewStudy} id="btn-create-study" style={{ height: '42px' }}>
+        <button className="btn btn-primary" onClick={() => setIsCreateModalOpen(true)} id="btn-create-study" style={{ height: '42px' }}>
           <Plus size={16} /> New Study
         </button>
       </div>
@@ -222,7 +245,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             }
           </p>
           {!searchQuery && (
-            <button className="btn btn-primary" onClick={onCreateNewStudy} style={{ marginTop: '8px' }}>
+            <button className="btn btn-primary" onClick={() => setIsCreateModalOpen(true)} style={{ marginTop: '8px' }}>
               <Plus size={16} /> Create Study
             </button>
           )}
@@ -380,7 +403,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
               {/* Participant Progress Panel */}
               <div className="details-participants-section" style={{
-                backgroundColor: 'var(--bg)',
+                backgroundColor: 'var(--card-bg)',
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-md)',
                 padding: '16px 20px',
@@ -406,20 +429,41 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span style={{ color: 'var(--text-muted)' }}>Target:</span>
                       {isEditingMin ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-icon-only"
+                            style={{ padding: '2px', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            onClick={() => setTempMin(prev => Math.max(1, prev - 1))}
+                            aria-label="Decrease target"
+                          >
+                            <Minus size={10} />
+                          </button>
+                          
                           <input
                             type="number"
                             className="form-control"
                             value={tempMin}
                             onChange={(e) => setTempMin(Math.max(1, parseInt(e.target.value) || 1))}
-                            style={{ width: '52px', padding: '2px 4px', height: '22px', fontSize: '12px' }}
+                            style={{ width: '40px', padding: '2px 4px', height: '22px', fontSize: '12px', textAlign: 'center' }}
                             min="1"
                             autoFocus
                           />
-                          <button className="btn btn-primary btn-icon-only" style={{ padding: '2px', borderRadius: '4px' }} onClick={handleSaveMinInline} title="Save">
+                          
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-icon-only"
+                            style={{ padding: '2px', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            onClick={() => setTempMin(prev => prev + 1)}
+                            aria-label="Increase target"
+                          >
+                            <Plus size={10} />
+                          </button>
+                          
+                          <button className="btn btn-primary btn-icon-only" style={{ padding: '2px', borderRadius: '4px', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={handleSaveMinInline} title="Save">
                             <Check size={12} />
                           </button>
-                          <button className="btn btn-secondary btn-icon-only" style={{ padding: '2px', borderRadius: '4px' }} onClick={() => setIsEditingMin(false)} title="Cancel">
+                          <button className="btn btn-secondary btn-icon-only" style={{ padding: '2px', borderRadius: '4px', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsEditingMin(false)} title="Cancel">
                             <X size={12} />
                           </button>
                         </div>
@@ -452,7 +496,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <div style={{
                     width: `${Math.min(100, (selectedStudy.completedParticipants / (selectedStudy.minParticipants || 1)) * 100)}%`,
                     height: '100%',
-                    backgroundColor: selectedStudy.completedParticipants >= selectedStudy.minParticipants ? 'var(--success)' : 'var(--primary)',
+                    backgroundColor: 'var(--text)',
                     borderRadius: '3px',
                     transition: 'width 0.3s ease'
                   }}></div>
@@ -464,21 +508,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div 
                   className="study-frame-card"
                   onClick={() => {
+                    const studyId = selectedStudy.id;
                     setSelectedStudy(null);
-                    onNavigateToStudyDesign(selectedStudy.id);
+                    onNavigateToStudyDesign(studyId);
                   }}
                 >
                   <div className="study-frame-preview">
-                    <div className="mock-canvas">
-                      <div className="mock-sidebar"></div>
-                      <div className="mock-prototype">
-                        <div className="mock-play-button"></div>
+                    {selectedStudy.figmaUrl ? (
+                      <iframe
+                        src={getEmbedUrl(selectedStudy.figmaUrl)}
+                        title="Figma Prototype Preview Thumbnail"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          border: 'none',
+                          pointerEvents: 'none',
+                          display: 'block'
+                        }}
+                      />
+                    ) : (
+                      <div className="mock-canvas">
+                        <div className="mock-sidebar"></div>
+                        <div className="mock-prototype">
+                          <div className="mock-play-button"></div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                   <div className="study-frame-info">
-                    <h3>Study Design</h3>
-                    <p>Prototype embedding & setup</p>
+                    <h3>Study Configuration</h3>
+                    <p>Configure questions and prototype embeds</p>
                   </div>
                 </div>
 
@@ -503,6 +562,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                 </div>
               </div>
+
+
 
               <div style={{
                 display: 'flex',
@@ -538,6 +599,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
         onConfirm={handleDeleteConfirm}
         onCancel={() => setStudyToDelete(null)}
         isDeleting={isDeleting}
+      />
+
+      {/* Create Study Parameter Config Modal */}
+      <CreateStudyModal
+        isOpen={isCreateModalOpen}
+        onConfirm={handleCreateStudyConfirm}
+        onCancel={() => setIsCreateModalOpen(false)}
       />
 
     </div>

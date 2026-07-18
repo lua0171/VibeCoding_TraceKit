@@ -1,3 +1,36 @@
+export interface SurveyQuestion {
+  id: string;
+  text: string;
+  type: 'single_choice' | 'multiple_choice' | 'short_text' | 'long_text' | 'number' | 'rating' | 'yes_no' | 'dropdown';
+  options?: string[];
+  ratingMin?: number;
+  ratingMax?: number;
+  ratingMinLabel?: string;
+  ratingMaxLabel?: string;
+}
+
+export interface ClickedElement {
+  targetName: string;
+  timestamp: number;
+  frameName: string;
+}
+
+export interface RecordedPath {
+  startingFrame: string;
+  framesVisited: string[];
+  navigationPath: string[];
+  clickedElements: ClickedElement[];
+  orderOfInteractions: string[];
+  completedStatus: boolean;
+}
+
+export interface StudyTask {
+  id: string;
+  title: string;
+  instruction: string;
+  expectedPath?: RecordedPath;
+}
+
 export interface Study {
   id: string;
   title: string;
@@ -8,8 +41,11 @@ export interface Study {
   minParticipants: number;
   figmaUrl?: string;
   initialHypotheses?: string;
-  preSurveyQuestions?: any[];
-  postSurveyQuestions?: any[];
+  preSurveyQuestions?: SurveyQuestion[];
+  postSurveyQuestionsMode?: 'none' | 'standardized' | 'custom';
+  postSurveyStandardizedKeys?: string[];
+  postSurveyQuestions?: SurveyQuestion[];
+  tasks?: StudyTask[];
 }
 
 export interface TrackedEvent {
@@ -54,6 +90,18 @@ const getRawStudies = (): Study[] => {
         updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
         completedParticipants: 8,
         minParticipants: 10,
+        tasks: [
+          {
+            id: 'task_1',
+            title: 'Add red running shoes to cart',
+            instruction: 'Find the shoes section, locate the red running shoes, select size 9, and click "Add to Cart".'
+          },
+          {
+            id: 'task_2',
+            title: 'Check out shopping cart',
+            instruction: 'Open your shopping cart, fill out shipping details, select standard shipping, and place the order.'
+          }
+        ]
       },
       {
         id: '2',
@@ -63,6 +111,13 @@ const getRawStudies = (): Study[] => {
         updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
         completedParticipants: 0,
         minParticipants: 5,
+        tasks: [
+          {
+            id: 'task_3',
+            title: 'Inspect Ollama settings status',
+            instruction: 'Go to the AI provider settings panel and check if local Ollama model connection has loaded.'
+          }
+        ]
       },
       {
         id: '3',
@@ -72,6 +127,18 @@ const getRawStudies = (): Study[] => {
         updatedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
         completedParticipants: 4,
         minParticipants: 12,
+        tasks: [
+          {
+            id: 'task_4',
+            title: 'Search for anxiety exercise',
+            instruction: 'Open search, search for "anxiety relief meditation", click the exercise, and run a 5-minute breathing session.'
+          },
+          {
+            id: 'task_5',
+            title: 'Log a mood event',
+            instruction: 'Click the "+" button in navigation, choose mood logging, select "Calm", and click save.'
+          }
+        ]
       }
     ];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(mockStudies));
@@ -128,7 +195,7 @@ export const db = {
   /**
    * Create a new study
    */
-  async createStudy(studyData: Omit<Study, 'id' | 'createdAt' | 'updatedAt' | 'completedParticipants' | 'minParticipants'>): Promise<Study> {
+  async createStudy(studyData: Omit<Study, 'id' | 'createdAt' | 'updatedAt' | 'completedParticipants' | 'minParticipants'> & { minParticipants?: number }): Promise<Study> {
     await delay(DELAY_MS);
     const studies = getRawStudies();
     const now = new Date().toISOString();
@@ -138,7 +205,7 @@ export const db = {
       createdAt: now,
       updatedAt: now,
       completedParticipants: 0,
-      minParticipants: 10
+      minParticipants: studyData.minParticipants !== undefined ? studyData.minParticipants : 10
     };
     studies.push(newStudy);
     saveRawStudies(studies);
