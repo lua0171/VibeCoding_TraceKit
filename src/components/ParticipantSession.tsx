@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { db, type Study } from '../db/db';
-import { getEmbedUrl } from '../lib/figma';
+import { PrototypeViewer } from './PrototypeViewer';
 
 interface ParticipantSessionProps {
   studyId: string;
@@ -9,14 +9,12 @@ interface ParticipantSessionProps {
 
 type Stage = 'loading' | 'not-found' | 'intro' | 'active' | 'done';
 
-const FIGMA_ORIGIN = 'https://www.figma.com';
-
 export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId }) => {
   const [stage, setStage] = useState<Stage>('loading');
   const [study, setStudy] = useState<Study | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [iframeLoading, setIframeLoading] = useState(true);
   const [activeTaskIndex, setActiveTaskIndex] = useState<number>(0);
+  const [currentFrameId, setCurrentFrameId] = useState<string>('Home View');
   const previousNodeId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -32,54 +30,46 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
     fetchStudy();
   }, [studyId]);
 
-  // Listen for click/navigation events from the embedded prototype once active.
-  useEffect(() => {
-    if (stage !== 'active' || !sessionId) return;
+  const activeTask = study?.tasks && study.tasks.length > 0 ? study.tasks[activeTaskIndex] : null;
 
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== FIGMA_ORIGIN) return;
-      const { type, data } = event.data || {};
+  const handleNavigate = (toFrameId: string) => {
+    if (sessionId) {
+      db.appendEvent(sessionId, {
+        type: 'navigation',
+        nodeId: toFrameId,
+        timestamp: new Date().toISOString(),
+        fromNodeId: previousNodeId.current || undefined,
+        toNodeId: toFrameId,
+        taskId: activeTask?.id
+      });
+    }
+    previousNodeId.current = toFrameId;
+    setCurrentFrameId(toFrameId);
+  };
 
-      const activeTask = study?.tasks && study.tasks.length > 0 ? study.tasks[activeTaskIndex] : null;
-      const taskId = activeTask ? activeTask.id : undefined;
-
-      if (type === 'MOUSE_PRESS_OR_RELEASE' && data) {
-        db.appendEvent(sessionId, {
-          type: 'click',
-          nodeId: data.targetNodeId,
-          timestamp: new Date().toISOString(),
-          x: data.targetNodeMousePosition?.x,
-          y: data.targetNodeMousePosition?.y,
-          // Figma calls this "handled": whether the click hit an interactive hotspot
-          isHotspot: data.handled,
-          taskId,
-          screenId: previousNodeId.current || undefined,
-        });
-      } else if (type === 'PRESENTED_NODE_CHANGED' && data) {
-        const toNodeId = data.presentedNodeId;
-        db.appendEvent(sessionId, {
-          type: 'navigation',
-          nodeId: toNodeId,
-          timestamp: new Date().toISOString(),
-          fromNodeId: previousNodeId.current ?? undefined,
-          toNodeId,
-          taskId,
-        });
-        previousNodeId.current = toNodeId;
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [stage, sessionId, activeTaskIndex, study]);
+  const handleViewerClick = (x: number, y: number, targetName: string, isHotspot: boolean) => {
+    if (sessionId) {
+      db.appendEvent(sessionId, {
+        type: 'click',
+        nodeId: targetName,
+        timestamp: new Date().toISOString(),
+        x,
+        y,
+        isHotspot,
+        taskId: activeTask?.id,
+        screenId: currentFrameId
+      });
+    }
+  };
 
   const handleStart = async () => {
     const session = await db.createSession(studyId);
     setSessionId(session.id);
     setActiveTaskIndex(0);
     const firstTask = study?.tasks && study.tasks.length > 0 ? study.tasks[0] : null;
-    previousNodeId.current = firstTask?.startingFrameNodeId || null;
-    setIframeLoading(true);
+    const startFrame = firstTask?.startingFrameNodeId || 'Home View';
+    setCurrentFrameId(startFrame);
+    previousNodeId.current = startFrame;
     setStage('active');
   };
 
@@ -170,9 +160,6 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
   }
 
   // stage === 'active'
-  const activeTask = study?.tasks && study.tasks.length > 0 ? study.tasks[activeTaskIndex] : null;
-  const iframeSrc = study?.figmaUrl ? getEmbedUrl(study.figmaUrl, activeTask?.startingFrameNodeId) : '';
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <div style={{
@@ -220,8 +207,9 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
                 const nextIndex = activeTaskIndex + 1;
                 setActiveTaskIndex(nextIndex);
                 const nextTask = study?.tasks ? study.tasks[nextIndex] : null;
-                previousNodeId.current = nextTask?.startingFrameNodeId || null;
-                setIframeLoading(true);
+                const startFrame = nextTask?.startingFrameNodeId || 'Home View';
+                setCurrentFrameId(startFrame);
+                previousNodeId.current = startFrame;
               }}
               style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
@@ -236,25 +224,13 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
       </div>
 
       <div style={{ flex: 1, position: 'relative', backgroundColor: 'black' }}>
-        {iframeLoading && (
-          <div style={{
-            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', gap: '12px', color: '#9ca3af',
-          }}>
-            <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
-            <span style={{ fontSize: '12px' }}>Loading prototype...</span>
-          </div>
-        )}
-        <iframe
-          key={activeTaskIndex}
-          src={iframeSrc}
-          title="Usability test prototype"
-          allowFullScreen
-          onLoad={() => setIframeLoading(false)}
-          style={{ border: 'none', width: '100%', height: '100%', display: 'block' }}
+        <PrototypeViewer
+          frameId={currentFrameId}
+          figmaUrl={study?.figmaUrl}
+          onNavigate={handleNavigate}
+          onClick={handleViewerClick}
         />
       </div>
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { getEmbedUrl } from '../lib/figma';
+import { PrototypeViewer } from './PrototypeViewer';
 
 /**
  * <Heatmap />
@@ -87,6 +87,12 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  useEffect(() => {
+    if (figmaUrl) {
+      setImageLoaded(true);
+    }
+  }, [figmaUrl]);
 
   const filteredEvents = useMemo(
     () => events.filter((e) => activeParticipantIds.has(e.sessionId)),
@@ -351,17 +357,10 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl }) => {
                   userSelect: 'none'
                 }}
               >
-                <iframe
-                  src={getEmbedUrl(figmaUrl, screen.id)}
-                  title={`Figma Frame ${screen.name}`}
-                  onLoad={() => setImageLoaded(true)}
-                  style={{
-                    border: 'none',
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    display: 'block'
-                  }}
+                <PrototypeViewer
+                  frameId={screen.id}
+                  figmaUrl={figmaUrl}
+                  readOnly={true}
                 />
               </div>
             ) : (

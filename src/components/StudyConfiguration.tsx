@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ClipboardList, Smartphone, HelpCircle, Loader2, Save, AlertCircle, Trash2, ExternalLink, AlertTriangle, Plus, X, ChevronUp, ChevronDown, Edit2, Monitor, Tablet, Link2, Check } from 'lucide-react';
 import { db, type Study, type SurveyQuestion, type StudyTask, type ClickedElement, type RecordedPath } from '../db/db';
+import { PrototypeViewer } from './PrototypeViewer';
 
 const DEFAULT_QUESTIONS: SurveyQuestion[] = [
   {
@@ -480,17 +481,16 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
   // Task Starting Frame Visual Selector states
   const [isVisualSelectorOpen, setIsVisualSelectorOpen] = useState(false);
   const [activeSelectorFrame, setActiveSelectorFrame] = useState<string>('');
-  const [selectorIframeLoading, setSelectorIframeLoading] = useState(false);
 
   // Recording expected solution states
   const [isRecordingModalOpen, setIsRecordingModalOpen] = useState(false);
   const [recordingTask, setRecordingTask] = useState<StudyTask | null>(null);
+  const [recordingFrameId, setRecordingFrameId] = useState<string>('Home View');
   const [recordingStartTime, setRecordingStartTime] = useState(0);
   const [recordingSteps, setRecordingSteps] = useState<ClickedElement[]>([]);
   const [recordingFrames, setRecordingFrames] = useState<string[]>([]);
   const [customFrameInput, setCustomFrameInput] = useState('');
   const [customClickInput, setCustomClickInput] = useState('');
-  const [recordingIframeLoading, setRecordingIframeLoading] = useState(false);
 
   // Viewport and Link copying states
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
@@ -508,66 +508,6 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
       });
   };
 
-  // Listen for Figma message events during expected path recording
-  useEffect(() => {
-    if (!isRecordingModalOpen || !recordingTask) return;
-
-    const handleFigmaMessage = (event: MessageEvent) => {
-      if (event.origin !== 'https://www.figma.com') return;
-      const { type, data } = event.data || {};
-
-      if (type === 'MOUSE_PRESS_OR_RELEASE' && data) {
-        const timeElapsed = Date.now() - recordingStartTime;
-        const currentFrame = activeFrameRef.current;
-        const targetName = data.targetNodeId || 'Figma Node';
-        
-        const newClick: ClickedElement = {
-          targetName,
-          timestamp: timeElapsed,
-          frameName: currentFrame
-        };
-        setRecordingSteps(prev => [...prev, newClick]);
-      } else if (type === 'PRESENTED_NODE_CHANGED' && data) {
-        const toNodeId = data.presentedNodeId;
-        if (!toNodeId) return;
-
-        activeFrameRef.current = toNodeId;
-        setRecordingFrames(prev => {
-          if (prev.length === 0) {
-            return [toNodeId];
-          }
-          if (prev[prev.length - 1] === toNodeId) {
-            return prev;
-          }
-          return [...prev, toNodeId];
-        });
-      }
-    };
-
-    window.addEventListener('message', handleFigmaMessage);
-    return () => window.removeEventListener('message', handleFigmaMessage);
-  }, [isRecordingModalOpen, recordingTask, recordingStartTime]);
-
-  // Listen for Figma message events during visual frame selection in task modal
-  useEffect(() => {
-    if (!isVisualSelectorOpen || !study?.figmaUrl) return;
-
-    const handleSelectorMessage = (event: MessageEvent) => {
-      if (event.origin !== 'https://www.figma.com') return;
-      const { type, data } = event.data || {};
-
-      if (type === 'PRESENTED_NODE_CHANGED' && data) {
-        const toNodeId = data.presentedNodeId;
-        if (toNodeId) {
-          setActiveSelectorFrame(toNodeId);
-        }
-      }
-    };
-
-    window.addEventListener('message', handleSelectorMessage);
-    return () => window.removeEventListener('message', handleSelectorMessage);
-  }, [isVisualSelectorOpen, study?.figmaUrl]);
-
   // Tasks operations
   const resetTaskForm = () => {
     setTaskTitleInput('');
@@ -575,7 +515,6 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
     setTaskStartingFrameNodeIdInput('');
     setIsVisualSelectorOpen(false);
     setActiveSelectorFrame('');
-    setSelectorIframeLoading(false);
     setEditingTask(null);
     setTaskFeedback(null);
   };
@@ -674,6 +613,8 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
     setRecordingTask(task);
     setRecordingStartTime(Date.now());
     setRecordingSteps([]);
+    const startFrame = task.startingFrameNodeId || 'Home View';
+    setRecordingFrameId(startFrame);
     if (task.startingFrameNodeId) {
       setRecordingFrames([task.startingFrameNodeId]);
       activeFrameRef.current = task.startingFrameNodeId;
@@ -683,7 +624,6 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
     }
     setCustomFrameInput('');
     setCustomClickInput('');
-    setRecordingIframeLoading(true);
     setIsRecordingModalOpen(true);
   };
 
@@ -2894,7 +2834,6 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                         disabled={!study?.figmaUrl}
                         onClick={() => {
                           setIsVisualSelectorOpen(!isVisualSelectorOpen);
-                          setSelectorIframeLoading(true);
                         }}
                         style={{ fontSize: '12px', whiteSpace: 'nowrap', padding: '0 12px' }}
                       >
@@ -2935,22 +2874,13 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                       height: '320px', 
                       border: '1px solid var(--border)' 
                     }}>
-                      {selectorIframeLoading && (
-                        <div style={{
-                          position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-                          alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#9ca3af',
-                          backgroundColor: '#0a0a0a', zIndex: 5
-                        }}>
-                          <Loader2 size={20} className="spinner" />
-                          <span style={{ fontSize: '11px' }}>Loading prototype...</span>
-                        </div>
-                      )}
-                      <iframe
-                        src={getEmbedUrl(study.figmaUrl)}
-                        title="Visual Start Frame Selector"
-                        allowFullScreen
-                        onLoad={() => setSelectorIframeLoading(false)}
-                        style={{ border: 'none', width: '100%', height: '100%', display: 'block' }}
+                      <PrototypeViewer
+                        frameId={activeSelectorFrame || 'Home View'}
+                        figmaUrl={study.figmaUrl}
+                        onNavigate={(toFrameId) => {
+                          setActiveSelectorFrame(toFrameId);
+                          setTaskStartingFrameNodeIdInput(toFrameId);
+                        }}
                       />
                     </div>
 
@@ -3309,37 +3239,26 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                {recordingIframeLoading && (
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: '#0a0a0a',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 10,
-                    gap: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    <Loader2 size={24} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
-                    <span style={{ fontSize: '12px' }}>Connecting to Figma Embed Player...</span>
-                  </div>
-                )}
-
-                <iframe
-                  src={getEmbedUrl(study.figmaUrl || '', recordingTask.startingFrameNodeId)}
-                  title="Recording Figma Embed Prototype"
-                  allowFullScreen
-                  onLoad={() => setRecordingIframeLoading(false)}
-                  style={{
-                    border: 'none',
-                    width: '100%',
-                    height: '100%',
-                    display: 'block'
+                <PrototypeViewer
+                  frameId={recordingFrameId}
+                  figmaUrl={study.figmaUrl}
+                  onNavigate={(toFrameId) => {
+                    setRecordingFrameId(toFrameId);
+                    setRecordingFrames(prev => {
+                      if (prev.length === 0) return [toFrameId];
+                      if (prev[prev.length - 1] === toFrameId) return prev;
+                      return [...prev, toFrameId];
+                    });
+                    activeFrameRef.current = toFrameId;
+                  }}
+                  onClick={(_x, _y, targetName, _isHotspot) => {
+                    const timeElapsed = Date.now() - recordingStartTime;
+                    const click: ClickedElement = {
+                      targetName,
+                      timestamp: timeElapsed,
+                      frameName: recordingFrameId
+                    };
+                    setRecordingSteps(prev => [...prev, click]);
                   }}
                 />
               </div>
