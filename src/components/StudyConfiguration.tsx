@@ -470,6 +470,11 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
   const [taskStartingFrameNodeIdInput, setTaskStartingFrameNodeIdInput] = useState('');
   const [taskFeedback, setTaskFeedback] = useState<string | null>(null);
 
+  // Task Starting Frame Visual Selector states
+  const [isVisualSelectorOpen, setIsVisualSelectorOpen] = useState(false);
+  const [activeSelectorFrame, setActiveSelectorFrame] = useState<string>('');
+  const [selectorIframeLoading, setSelectorIframeLoading] = useState(false);
+
   // Recording expected solution states
   const [isRecordingModalOpen, setIsRecordingModalOpen] = useState(false);
   const [recordingTask, setRecordingTask] = useState<StudyTask | null>(null);
@@ -536,11 +541,34 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
     return () => window.removeEventListener('message', handleFigmaMessage);
   }, [isRecordingModalOpen, recordingTask, recordingStartTime]);
 
+  // Listen for Figma message events during visual frame selection in task modal
+  useEffect(() => {
+    if (!isVisualSelectorOpen || !study?.figmaUrl) return;
+
+    const handleSelectorMessage = (event: MessageEvent) => {
+      if (event.origin !== 'https://www.figma.com') return;
+      const { type, data } = event.data || {};
+
+      if (type === 'PRESENTED_NODE_CHANGED' && data) {
+        const toNodeId = data.presentedNodeId;
+        if (toNodeId) {
+          setActiveSelectorFrame(toNodeId);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleSelectorMessage);
+    return () => window.removeEventListener('message', handleSelectorMessage);
+  }, [isVisualSelectorOpen, study?.figmaUrl]);
+
   // Tasks operations
   const resetTaskForm = () => {
     setTaskTitleInput('');
     setTaskInstructionInput('');
     setTaskStartingFrameNodeIdInput('');
+    setIsVisualSelectorOpen(false);
+    setActiveSelectorFrame('');
+    setSelectorIframeLoading(false);
     setEditingTask(null);
     setTaskFeedback(null);
   };
@@ -2609,10 +2637,11 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-lg)',
             width: '100%',
-            maxWidth: '500px',
+            maxWidth: isVisualSelectorOpen ? '900px' : '500px',
             boxShadow: 'var(--shadow-lg)',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            transition: 'max-width 0.3s ease'
           }}>
             <div style={{
               display: 'flex',
@@ -2643,93 +2672,202 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
             </div>
 
             <form onSubmit={handleSaveTask}>
-              <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {taskFeedback && (
-                  <div style={{
-                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '10px 12px',
-                    color: 'var(--danger)',
-                    fontSize: '13px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
+              <div style={{ 
+                padding: '24px', 
+                display: 'flex', 
+                flexDirection: isVisualSelectorOpen ? 'row' : 'column', 
+                gap: '24px',
+                overflow: 'hidden'
+              }}>
+                {/* Form Fields Column */}
+                <div style={{ 
+                  flex: isVisualSelectorOpen ? '0 0 380px' : '1', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '16px' 
+                }}>
+                  {taskFeedback && (
+                    <div style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '10px 12px',
+                      color: 'var(--danger)',
+                      fontSize: '13px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <AlertCircle size={14} />
+                      <span>{taskFeedback}</span>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                      Task Title
+                    </label>
+                    <input
+                      type="text"
+                      value={taskTitleInput}
+                      onChange={e => setTaskTitleInput(e.target.value)}
+                      placeholder='e.g., "Add running shoes to cart"'
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--input-bg)',
+                        color: 'var(--text)',
+                        fontSize: '14px',
+                        outline: 'none',
+                        width: '100%'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                      Instruction to Participant
+                    </label>
+                    <textarea
+                      value={taskInstructionInput}
+                      onChange={e => setTaskInstructionInput(e.target.value)}
+                      placeholder='e.g., "Browse the shoes catalog, click on the red running shoes, select size 9, and click Add to Cart."'
+                      rows={4}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--input-bg)',
+                        color: 'var(--text)',
+                        fontSize: '14px',
+                        outline: 'none',
+                        width: '100%',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                      Starting Frame Node ID (Optional)
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        value={taskStartingFrameNodeIdInput}
+                        onChange={e => setTaskStartingFrameNodeIdInput(e.target.value)}
+                        placeholder="e.g. 1:12"
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--border)',
+                          backgroundColor: 'var(--input-bg)',
+                          color: 'var(--text)',
+                          fontSize: '14px',
+                          outline: 'none',
+                          flexGrow: 1
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        disabled={!study?.figmaUrl}
+                        onClick={() => {
+                          setIsVisualSelectorOpen(!isVisualSelectorOpen);
+                          setSelectorIframeLoading(true);
+                        }}
+                        style={{ fontSize: '12px', whiteSpace: 'nowrap', padding: '0 12px' }}
+                      >
+                        {isVisualSelectorOpen ? 'Close Live Selector' : '🔍 Choose Visually'}
+                      </button>
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {!study?.figmaUrl ? 'Please configure a Figma link in Step 1 first.' : 'Loads this specific frame as the start screen for the task.'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right Side: Visual Frame Selector Player */}
+                {isVisualSelectorOpen && study?.figmaUrl && (
+                  <div style={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '12px',
+                    borderLeft: '1px solid var(--border)',
+                    paddingLeft: '24px',
+                    minWidth: '400px'
                   }}>
-                    <AlertCircle size={14} />
-                    <span>{taskFeedback}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                        Live Frame Selector
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Navigate in the player to set active frame.
+                      </span>
+                    </div>
+
+                    <div style={{ 
+                      position: 'relative', 
+                      backgroundColor: 'black', 
+                      borderRadius: 'var(--radius-md)', 
+                      overflow: 'hidden', 
+                      height: '320px', 
+                      border: '1px solid var(--border)' 
+                    }}>
+                      {selectorIframeLoading && (
+                        <div style={{
+                          position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+                          alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#9ca3af',
+                          backgroundColor: '#0a0a0a', zIndex: 5
+                        }}>
+                          <Loader2 size={20} className="spinner" />
+                          <span style={{ fontSize: '11px' }}>Loading prototype...</span>
+                        </div>
+                      )}
+                      <iframe
+                        src={getEmbedUrl(study.figmaUrl)}
+                        title="Visual Start Frame Selector"
+                        allowFullScreen
+                        onLoad={() => setSelectorIframeLoading(false)}
+                        style={{ border: 'none', width: '100%', height: '100%', display: 'block' }}
+                      />
+                    </div>
+
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between', 
+                      backgroundColor: 'var(--bg)', 
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '8px 12px',
+                      gap: '8px'
+                    }}>
+                      <div style={{ overflow: 'hidden', marginRight: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'block' }}>
+                          Active Node:
+                        </span>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', textOverflow: 'ellipsis', overflow: 'hidden', display: 'block', whiteSpace: 'nowrap' }}>
+                          {activeSelectorFrame || 'Navigate in player to detect...'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={!activeSelectorFrame}
+                        onClick={() => {
+                          setTaskStartingFrameNodeIdInput(activeSelectorFrame);
+                          setIsVisualSelectorOpen(false);
+                        }}
+                        style={{ fontSize: '11px', padding: '6px 12px', height: 'auto', whiteSpace: 'nowrap', backgroundColor: 'var(--success)', borderColor: 'var(--success)' }}
+                      >
+                        ✔ Select Current Frame
+                      </button>
+                    </div>
                   </div>
                 )}
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
-                    Task Title
-                  </label>
-                  <input
-                    type="text"
-                    value={taskTitleInput}
-                    onChange={e => setTaskTitleInput(e.target.value)}
-                    placeholder='e.g., "Add running shoes to cart"'
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border)',
-                      backgroundColor: 'var(--input-bg)',
-                      color: 'var(--text)',
-                      fontSize: '14px',
-                      outline: 'none',
-                      width: '100%'
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
-                    Instruction to Participant
-                  </label>
-                  <textarea
-                    value={taskInstructionInput}
-                    onChange={e => setTaskInstructionInput(e.target.value)}
-                    placeholder='e.g., "Browse the shoes catalog, click on the red running shoes, select size 9, and click Add to Cart."'
-                    rows={4}
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border)',
-                      backgroundColor: 'var(--input-bg)',
-                      color: 'var(--text)',
-                      fontSize: '14px',
-                      outline: 'none',
-                      width: '100%',
-                      resize: 'vertical'
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
-                    Starting Frame Node ID (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={taskStartingFrameNodeIdInput}
-                    onChange={e => setTaskStartingFrameNodeIdInput(e.target.value)}
-                    placeholder="e.g. 1:12 (found in Figma URL as &node-id=...)"
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border)',
-                      backgroundColor: 'var(--input-bg)',
-                      color: 'var(--text)',
-                      fontSize: '14px',
-                      outline: 'none',
-                      width: '100%'
-                    }}
-                  />
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    Loads this specific frame as the start screen for the task when recording or testing.
-                  </span>
-                </div>
               </div>
 
               <div style={{
