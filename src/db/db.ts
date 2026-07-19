@@ -86,12 +86,20 @@ export interface TrackedEvent {
   screenId?: string;
 }
 
+export interface SurveyResponse {
+  questionId: string;
+  questionText: string;
+  answer: string | string[];
+}
+
 export interface Session {
   id: string;
   studyId: string;
   startedAt: string;
   endedAt?: string;
   events: TrackedEvent[];
+  preSurveyAnswers?: SurveyResponse[];
+  postSurveyAnswers?: SurveyResponse[];
 }
 
 export interface Hypothesis {
@@ -335,6 +343,22 @@ export const db = {
     const session = sessions.find(s => s.id === sessionId);
     if (!session) return;
     session.endedAt = new Date().toISOString();
+    saveRawSessions(sessions);
+  },
+
+  /**
+   * Save survey answers for a session
+   */
+  async saveSurveyAnswers(
+    sessionId: string,
+    preAnswers: SurveyResponse[],
+    postAnswers: SurveyResponse[]
+  ): Promise<void> {
+    const sessions = getRawSessions();
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+    session.preSurveyAnswers = preAnswers;
+    session.postSurveyAnswers = postAnswers;
     saveRawSessions(sessions);
   },
 
