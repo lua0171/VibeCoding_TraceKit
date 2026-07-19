@@ -68,13 +68,15 @@ const ZOOM_STEP = 0.25;
 const HOVER_RADIUS_PX = 28; // radius (in canvas px) used to gather nearby events on hover
 
 // --- Component -------------------------------------------------------------
+import { type Study } from '../db/db';
 
 interface HeatmapProps {
   data: HeatmapData;
   figmaUrl?: string;
+  importedPrototype?: Study['importedPrototype'];
 }
 
-export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl }) => {
+export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl, importedPrototype }) => {
   const { screen, participants, events } = data;
 
   const [activeParticipantIds, setActiveParticipantIds] = useState<Set<string>>(
@@ -359,6 +361,7 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl }) => {
               >
                 <PrototypeViewer
                   frameId={screen.id}
+                  importedPrototype={importedPrototype}
                   figmaUrl={figmaUrl}
                   readOnly={true}
                 />

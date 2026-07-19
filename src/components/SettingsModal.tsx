@@ -9,12 +9,14 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [config, setConfig] = useState<AiProviderConfig>(DEFAULT_AI_CONFIG);
+  const [figmaToken, setFigmaToken] = useState('');
   const [hasConsented, setHasConsented] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       const current = getAiConfig();
       setConfig(current);
+      setFigmaToken(localStorage.getItem('tracekit_figma_token') || '');
       if (current.providerType === 'openai-compatible') {
         setHasConsented(true); // If already saved as external, they already consented
       } else {
@@ -27,6 +29,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   const handleSave = () => {
     saveAiConfig(config);
+    localStorage.setItem('tracekit_figma_token', figmaToken.trim());
     onClose();
   };
 
@@ -39,15 +42,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            AI Provider Settings
+            System & Provider Settings
           </h2>
           <button className="modal-close" onClick={onClose} aria-label="Close settings">
             <X size={20} />
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '70vh', overflowY: 'auto', paddingRight: '4px' }}>
           
+          <div style={{ fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>
+            AI Provider
+          </div>
+
           {/* Provider Selection */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <label style={{
@@ -75,7 +82,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 </div>
               </div>
             </label>
-
+ 
             <label style={{
               display: 'flex',
               gap: '12px',
@@ -175,12 +182,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </label>
           )}
 
+          <div style={{ fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginTop: '8px' }}>
+            Figma Integration
+          </div>
+
+          {/* Figma API configuration */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
+            <div className="form-group">
+              <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Key size={14} /> Figma Personal Access Token
+              </label>
+              <input
+                type="password"
+                className="form-control"
+                value={figmaToken}
+                onChange={(e) => setFigmaToken(e.target.value)}
+                placeholder="figd_..."
+              />
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.4 }}>
+                Required to import real frames and transition connections natively. Generate a token inside your <strong>Figma account settings &gt; Personal Access Tokens</strong>.
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
           <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={!canSave}>
-            Save Configuration
+            Save Settings
           </button>
         </div>
 

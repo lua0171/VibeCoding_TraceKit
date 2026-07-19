@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ClipboardList, Smartphone, HelpCircle, Loader2, Save, AlertCircle, Trash2, ExternalLink, AlertTriangle, Plus, X, ChevronUp, ChevronDown, Edit2, Monitor, Tablet, Link2, Check } from 'lucide-react';
 import { db, type Study, type SurveyQuestion, type StudyTask, type ClickedElement, type RecordedPath } from '../db/db';
 import { PrototypeViewer } from './PrototypeViewer';
+import { importPrototype } from '../lib/figmaApi';
 
 const DEFAULT_QUESTIONS: SurveyQuestion[] = [
   {
@@ -137,6 +138,8 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
   // Figma config state
   const [figmaUrlInput, setFigmaUrlInput] = useState('');
   const [isSavingFigma, setIsSavingFigma] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importFeedback, setImportFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [iframeLoading, setIframeLoading] = useState(false);
   const [figmaFeedback, setFigmaFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -766,6 +769,39 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
     }
   };
 
+  // Handle Import Figma Prototype
+  const handleImportPrototype = async () => {
+    if (!study?.figmaUrl) return;
+    const token = localStorage.getItem('tracekit_figma_token');
+    if (!token) {
+      setImportFeedback({
+        type: 'error',
+        text: 'Please configure your Figma Personal Access Token in settings (top-right gear icon) first.'
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    setImportFeedback(null);
+
+    try {
+      const imported = await importPrototype(study.figmaUrl, token);
+      const updated = await db.updateStudy(studyId, { importedPrototype: imported });
+      setStudy(updated);
+      setImportFeedback({
+        type: 'success',
+        text: `Successfully imported ${imported.frames.length} frames and transition hotspots!`
+      });
+    } catch (err: any) {
+      setImportFeedback({
+        type: 'error',
+        text: err.message || 'An error occurred during figma import.'
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   // Trigger iframe loader trigger on figmaUrl change
   useEffect(() => {
     if (study?.figmaUrl) {
@@ -795,6 +831,10 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
       </div>
     );
   }
+
+  const screens = (study?.importedPrototype?.frames && study.importedPrototype.frames.length > 0)
+    ? study.importedPrototype.frames.map(f => ({ id: f.id, name: f.name, desc: 'Imported Figma Frame', imageUrl: f.imageUrl }))
+    : standardScreens.map(s => ({ ...s, imageUrl: undefined }));
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
@@ -1278,6 +1318,66 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                     Open in Figma <ExternalLink size={11} />
                   </a>
                 </div>
+              </div>
+
+              {/* Figma Importer Panel */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                gap: '12px',
+                padding: '16px', 
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--card-bg)',
+                marginTop: '12px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <span style={{ fontSize: '13px', fontWeight: 600, display: 'block', color: 'var(--text)' }}>
+                      In-App Prototype Engine
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                      {study.importedPrototype ? (
+                        <span style={{ color: 'var(--success)', fontWeight: 500 }}>
+                          ✓ Imported: {study.importedPrototype.frames.length} screens loaded in local database.
+                        </span>
+                      ) : (
+                        <span>
+                          ℹ Local simulation: Using default fallback screens. Import to use the real Figma layout.
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleImportPrototype}
+                    disabled={isImporting}
+                    className="btn btn-primary"
+                    style={{ fontSize: '12px', height: '32px', gap: '6px', backgroundColor: 'var(--primary)', borderColor: 'var(--primary)' }}
+                  >
+                    {isImporting ? (
+                      <>
+                        <Loader2 size={12} className="spinner" /> Importing...
+                      </>
+                    ) : (
+                      'Import Figma Prototype'
+                    )}
+                  </button>
+                </div>
+
+                {importFeedback && (
+                  <div style={{
+                    fontSize: '12px',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: importFeedback.type === 'success' ? 'var(--success-bg)' : 'var(--error-bg)',
+                    color: importFeedback.type === 'success' ? 'var(--success)' : 'var(--error)',
+                    border: `1px solid ${importFeedback.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'}`
+                  }}>
+                    {importFeedback.text}
+                  </div>
+                )}
               </div>
 
               {/* Preview controls (Viewport select & Link copying) */}
@@ -2706,7 +2806,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                       gap: '10px',
                       marginBottom: '4px'
                     }}>
-                      {standardScreens.map(scr => {
+                      {screens.map(scr => {
                         const isSelected = taskStartingFrameNodeIdInput === scr.id;
                         return (
                           <div
@@ -2737,46 +2837,56 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                               padding: '4px',
                               gap: '3px'
                             }}>
-                              {scr.id === 'Home View' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', height: '100%' }}>
-                                  <div style={{ height: '5px', width: '40%', backgroundColor: 'var(--text-muted)', borderRadius: '1px' }} />
-                                  <div style={{ flex: 1, border: '1px dashed var(--border)', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <div style={{ height: '6px', width: '20px', backgroundColor: 'var(--primary)', borderRadius: '1px' }} />
-                                  </div>
-                                </div>
-                              )}
-                              {scr.id === 'Dashboard View' && (
-                                <div style={{ display: 'flex', gap: '3px', height: '100%' }}>
-                                  <div style={{ width: '10px', backgroundColor: 'var(--border)', borderRadius: '1px' }} />
-                                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                    <div style={{ height: '5px', backgroundColor: 'var(--border)', borderRadius: '1px' }} />
-                                    <div style={{ display: 'flex', gap: '2px', flex: 1 }}>
-                                      <div style={{ flex: 1, backgroundColor: 'var(--primary)', opacity: 0.15, borderRadius: '1px' }} />
-                                      <div style={{ flex: 1, backgroundColor: 'var(--primary)', opacity: 0.3, borderRadius: '1px' }} />
+                              {scr.imageUrl ? (
+                                <img
+                                  src={scr.imageUrl}
+                                  alt={scr.name}
+                                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                />
+                              ) : (
+                                <>
+                                  {scr.id === 'Home View' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', height: '100%' }}>
+                                      <div style={{ height: '5px', width: '40%', backgroundColor: 'var(--text-muted)', borderRadius: '1px' }} />
+                                      <div style={{ flex: 1, border: '1px dashed var(--border)', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <div style={{ height: '6px', width: '20px', backgroundColor: 'var(--primary)', borderRadius: '1px' }} />
+                                      </div>
                                     </div>
-                                  </div>
-                                </div>
-                              )}
-                              {scr.id === 'Search View' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', height: '100%' }}>
-                                  <div style={{ height: '6px', border: '1px solid var(--border)', borderRadius: '2px', display: 'flex', alignItems: 'center', padding: '0 2px' }}>
-                                    <div style={{ height: '2px', width: '10px', backgroundColor: 'var(--text-muted)', borderRadius: '1px' }} />
-                                  </div>
-                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px', flex: 1 }}>
-                                    <div style={{ backgroundColor: 'var(--border)', borderRadius: '1px' }} />
-                                    <div style={{ backgroundColor: 'var(--border)', borderRadius: '1px' }} />
-                                    <div style={{ backgroundColor: 'var(--border)', borderRadius: '1px' }} />
-                                  </div>
-                                </div>
-                              )}
-                              {scr.id === 'Profile View' && (
-                                <div style={{ display: 'flex', gap: '4px', alignItems: 'center', height: '100%', padding: '0 2px' }}>
-                                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'var(--border)', flexShrink: 0 }} />
-                                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <div style={{ height: '4px', width: '60%', backgroundColor: 'var(--text)', borderRadius: '1px' }} />
-                                    <div style={{ height: '3px', width: '40%', backgroundColor: 'var(--text-muted)', borderRadius: '1px' }} />
-                                  </div>
-                                </div>
+                                  )}
+                                  {scr.id === 'Dashboard View' && (
+                                    <div style={{ display: 'flex', gap: '3px', height: '100%' }}>
+                                      <div style={{ width: '10px', backgroundColor: 'var(--border)', borderRadius: '1px' }} />
+                                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                        <div style={{ height: '5px', backgroundColor: 'var(--border)', borderRadius: '1px' }} />
+                                        <div style={{ display: 'flex', gap: '2px', flex: 1 }}>
+                                          <div style={{ flex: 1, backgroundColor: 'var(--primary)', opacity: 0.15, borderRadius: '1px' }} />
+                                          <div style={{ flex: 1, backgroundColor: 'var(--primary)', opacity: 0.3, borderRadius: '1px' }} />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {scr.id === 'Search View' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', height: '100%' }}>
+                                      <div style={{ height: '6px', border: '1px solid var(--border)', borderRadius: '2px', display: 'flex', alignItems: 'center', padding: '0 2px' }}>
+                                        <div style={{ height: '2px', width: '10px', backgroundColor: 'var(--text-muted)', borderRadius: '1px' }} />
+                                      </div>
+                                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px', flex: 1 }}>
+                                        <div style={{ backgroundColor: 'var(--border)', borderRadius: '1px' }} />
+                                        <div style={{ backgroundColor: 'var(--border)', borderRadius: '1px' }} />
+                                        <div style={{ backgroundColor: 'var(--border)', borderRadius: '1px' }} />
+                                      </div>
+                                    </div>
+                                  )}
+                                  {scr.id === 'Profile View' && (
+                                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center', height: '100%', padding: '0 2px' }}>
+                                      <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'var(--border)', flexShrink: 0 }} />
+                                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <div style={{ height: '4px', width: '60%', backgroundColor: 'var(--text)', borderRadius: '1px' }} />
+                                        <div style={{ height: '3px', width: '40%', backgroundColor: 'var(--text-muted)', borderRadius: '1px' }} />
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
                             
@@ -2876,6 +2986,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                     }}>
                       <PrototypeViewer
                         frameId={activeSelectorFrame || 'Home View'}
+                        importedPrototype={study.importedPrototype}
                         figmaUrl={study.figmaUrl}
                         onNavigate={(toFrameId) => {
                           setActiveSelectorFrame(toFrameId);
@@ -3241,6 +3352,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
               }}>
                 <PrototypeViewer
                   frameId={recordingFrameId}
+                  importedPrototype={study.importedPrototype}
                   figmaUrl={study.figmaUrl}
                   onNavigate={(toFrameId) => {
                     setRecordingFrameId(toFrameId);

@@ -226,6 +226,7 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
       <div style={{ flex: 1, position: 'relative', backgroundColor: 'black' }}>
         <PrototypeViewer
           frameId={currentFrameId}
+          importedPrototype={study?.importedPrototype}
           figmaUrl={study?.figmaUrl}
           onNavigate={handleNavigate}
           onClick={handleViewerClick}

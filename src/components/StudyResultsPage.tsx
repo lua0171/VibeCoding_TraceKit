@@ -105,10 +105,12 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
       });
     });
 
+    const frameName = study?.importedPrototype?.frames?.find(f => f.id === selectedScreen)?.name || `Figma Frame Node: ${selectedScreen}`;
+
     return {
       screen: {
         id: selectedScreen,
-        name: `Figma Frame Node: ${selectedScreen}`,
+        name: frameName,
         imageUrl: '', // blank since we will use the live iframe rendering
         width: 960,
         height: 640
@@ -116,7 +118,7 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
       participants,
       events
     };
-  }, [selectedScreen, sessions]);
+  }, [selectedScreen, sessions, study]);
 
   if (!study) return <div style={{ padding: '24px' }}>Loading...</div>;
 
@@ -219,7 +221,7 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
           ) : (
             <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
               {heatmapData ? (
-                <Heatmap data={heatmapData} figmaUrl={study.figmaUrl} />
+                <Heatmap data={heatmapData} figmaUrl={study.figmaUrl} importedPrototype={study.importedPrototype} />
               ) : (
                 <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No click events recorded for the selected screen yet.

@@ -47,6 +47,24 @@ export interface Study {
   postSurveyStandardizedKeys?: string[];
   postSurveyQuestions?: SurveyQuestion[];
   tasks?: StudyTask[];
+  importedPrototype?: {
+    frames: {
+      id: string;
+      name: string;
+      imageUrl: string;
+      width?: number;
+      height?: number;
+      hotspots: {
+        id: string;
+        name: string;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        targetFrameId: string;
+      }[];
+    }[];
+  };
 }
 
 export interface TrackedEvent {
