@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Play, Lock, CheckCircle, XCircle, AlertCircle, Sparkles, Download } from 'lucide-react';
-import { db, type Hypothesis, type Study } from '../db/db';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ArrowLeft, Play, Lock, CheckCircle, XCircle, AlertCircle, Sparkles, Download, Info } from 'lucide-react';
+import { db, type Hypothesis, type Study, type Session } from '../db/db';
 import { runAnalysisLoop } from '../lib/analysis';
-import { HeatmapDemo } from './HeatmapDemo'; // Placeholder for the actual dynamic heatmap
+import { Heatmap, type HeatmapEvent } from './Heatmap';
 
 interface StudyResultsPageProps {
   studyId: string;
@@ -12,6 +12,8 @@ interface StudyResultsPageProps {
 export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onBack }) => {
   const [study, setStudy] = useState<Study | null>(null);
   const [hypotheses, setHypotheses] = useState<Hypothesis[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [selectedScreen, setSelectedScreen] = useState<string>('');
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,6 +23,21 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
       setStudy(s);
       const h = await db.getHypothesesByStudy(studyId);
       setHypotheses(h);
+      const sess = await db.getSessionsByStudy(studyId);
+      setSessions(sess);
+
+      // Extract unique screens visited
+      const screens = new Set<string>();
+      sess.forEach(session => {
+        session.events.forEach(e => {
+          if (e.screenId) screens.add(e.screenId);
+          if (e.type === 'navigation' && e.toNodeId) screens.add(e.toNodeId);
+        });
+      });
+      const screenList = Array.from(screens);
+      if (screenList.length > 0 && !selectedScreen) {
+        setSelectedScreen(screenList[0]);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -47,11 +64,59 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
     const target = hypotheses.find(h => h.id === id);
     if (!target) return;
     
-    // Copy the list, update the one, save, update state
     const updated = hypotheses.map(h => h.id === id ? { ...h, status: 'closed' as const } : h);
     await db.saveHypotheses(updated);
     setHypotheses(updated);
   };
+
+  // Compile list of unique screen nodes from session data
+  const uniqueScreens = useMemo(() => {
+    const screens = new Set<string>();
+    sessions.forEach(s => {
+      s.events.forEach(e => {
+        if (e.screenId) screens.add(e.screenId);
+        if (e.type === 'navigation' && e.toNodeId) screens.add(e.toNodeId);
+      });
+    });
+    return Array.from(screens);
+  }, [sessions]);
+
+  // Construct dynamic HeatmapData contract
+  const heatmapData = useMemo(() => {
+    if (!selectedScreen || sessions.length === 0) return null;
+
+    const participants = sessions.map(s => ({
+      id: s.id,
+      label: `Participant ${s.id.slice(-4)}`
+    }));
+
+    const events: HeatmapEvent[] = [];
+    sessions.forEach(s => {
+      s.events.forEach((e, idx) => {
+        if (e.type === 'click' && e.screenId === selectedScreen && e.x !== undefined && e.y !== undefined) {
+          events.push({
+            id: `ev_${idx}_${s.id}`,
+            sessionId: s.id,
+            x: e.x,
+            y: e.y,
+            timestamp: e.timestamp
+          });
+        }
+      });
+    });
+
+    return {
+      screen: {
+        id: selectedScreen,
+        name: `Figma Frame Node: ${selectedScreen}`,
+        imageUrl: '', // blank since we will use the live iframe rendering
+        width: 960,
+        height: 640
+      },
+      participants,
+      events
+    };
+  }, [selectedScreen, sessions]);
 
   if (!study) return <div style={{ padding: '24px' }}>Loading...</div>;
 
@@ -104,11 +169,64 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
           padding: '24px',
           boxShadow: 'var(--shadow-sm)'
         }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>Click Heatmaps</h2>
-          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-             {/* Using HeatmapDemo as a placeholder for the real wired-up heatmap */}
-            <HeatmapDemo />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>Click Heatmaps</h2>
+            
+            {uniqueScreens.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="no-print">
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>Select Screen:</span>
+                <select
+                  value={selectedScreen}
+                  onChange={(e) => setSelectedScreen(e.target.value)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text)',
+                    fontSize: '13px',
+                    outline: 'none'
+                  }}
+                >
+                  {uniqueScreens.map(scrId => (
+                    <option key={scrId} value={scrId}>
+                      Figma Node {scrId}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
+
+          {sessions.length === 0 ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              padding: '20px',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'rgba(0, 0, 0, 0.02)',
+              border: '1px solid var(--border)',
+              fontSize: '13px',
+              color: 'var(--text-muted)'
+            }}>
+              <Info size={20} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+              <div>
+                <strong style={{ color: 'var(--text)', display: 'block', marginBottom: '2px' }}>No Sessions Recorded Yet</strong>
+                <span>Please share the participant link with users to gather usability session tracking click logs, which will automatically generate heatmaps here.</span>
+              </div>
+            </div>
+          ) : (
+            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+              {heatmapData ? (
+                <Heatmap data={heatmapData} figmaUrl={study.figmaUrl} />
+              ) : (
+                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No click events recorded for the selected screen yet.
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* AI Hypothesis Loop */}

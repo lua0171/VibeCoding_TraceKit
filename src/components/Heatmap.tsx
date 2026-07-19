@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { getEmbedUrl } from '../lib/figma';
 
 /**
  * <Heatmap />
@@ -70,9 +71,10 @@ const HOVER_RADIUS_PX = 28; // radius (in canvas px) used to gather nearby event
 
 interface HeatmapProps {
   data: HeatmapData;
+  figmaUrl?: string;
 }
 
-export const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
+export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl }) => {
   const { screen, participants, events } = data;
 
   const [activeParticipantIds, setActiveParticipantIds] = useState<Set<string>>(
@@ -338,14 +340,40 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
               transform: `scale(${zoom})`,
             }}
           >
-            <img
-              ref={imageRef}
-              src={screen.imageUrl}
-              alt={`Screenshot of ${screen.name}`}
-              onLoad={() => setImageLoaded(true)}
-              style={{ display: 'block', maxWidth: 'none', userSelect: 'none' }}
-              draggable={false}
-            />
+            {figmaUrl ? (
+              <div 
+                ref={imageRef as any}
+                style={{ 
+                  width: '960px', 
+                  height: '640px', 
+                  position: 'relative',
+                  backgroundColor: '#000',
+                  userSelect: 'none'
+                }}
+              >
+                <iframe
+                  src={getEmbedUrl(figmaUrl, screen.id)}
+                  title={`Figma Frame ${screen.name}`}
+                  onLoad={() => setImageLoaded(true)}
+                  style={{
+                    border: 'none',
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    display: 'block'
+                  }}
+                />
+              </div>
+            ) : (
+              <img
+                ref={imageRef}
+                src={screen.imageUrl}
+                alt={`Screenshot of ${screen.name}`}
+                onLoad={() => setImageLoaded(true)}
+                style={{ display: 'block', maxWidth: 'none', userSelect: 'none' }}
+                draggable={false}
+              />
+            )}
             <canvas
               ref={canvasRef}
               onMouseMove={handleMouseMove}

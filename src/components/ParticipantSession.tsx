@@ -16,6 +16,7 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
   const [study, setStudy] = useState<Study | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [iframeLoading, setIframeLoading] = useState(true);
+  const [activeTaskIndex, setActiveTaskIndex] = useState<number>(0);
   const previousNodeId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -39,7 +40,10 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
       if (event.origin !== FIGMA_ORIGIN) return;
       const { type, data } = event.data || {};
 
-      if (type === 'MOUSE_PRESS_OR_RELEASE') {
+      const activeTask = study?.tasks && study.tasks.length > 0 ? study.tasks[activeTaskIndex] : null;
+      const taskId = activeTask ? activeTask.id : undefined;
+
+      if (type === 'MOUSE_PRESS_OR_RELEASE' && data) {
         db.appendEvent(sessionId, {
           type: 'click',
           nodeId: data.targetNodeId,
@@ -48,8 +52,10 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
           y: data.targetNodeMousePosition?.y,
           // Figma calls this "handled": whether the click hit an interactive hotspot
           isHotspot: data.handled,
+          taskId,
+          screenId: previousNodeId.current || undefined,
         });
-      } else if (type === 'PRESENTED_NODE_CHANGED') {
+      } else if (type === 'PRESENTED_NODE_CHANGED' && data) {
         const toNodeId = data.presentedNodeId;
         db.appendEvent(sessionId, {
           type: 'navigation',
@@ -57,6 +63,7 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
           timestamp: new Date().toISOString(),
           fromNodeId: previousNodeId.current ?? undefined,
           toNodeId,
+          taskId,
         });
         previousNodeId.current = toNodeId;
       }
@@ -64,11 +71,14 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [stage, sessionId]);
+  }, [stage, sessionId, activeTaskIndex, study]);
 
   const handleStart = async () => {
     const session = await db.createSession(studyId);
     setSessionId(session.id);
+    setActiveTaskIndex(0);
+    const firstTask = study?.tasks && study.tasks.length > 0 ? study.tasks[0] : null;
+    previousNodeId.current = firstTask?.startingFrameNodeId || null;
     setIframeLoading(true);
     setStage('active');
   };
@@ -112,11 +122,39 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
             {study.description}
           </p>
         )}
+        
+        {study.tasks && study.tasks.length > 0 && (
+          <div style={{
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+            padding: '16px 20px',
+            maxWidth: '440px',
+            width: '100%',
+            textAlign: 'left',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            marginBottom: '8px'
+          }}>
+            <h3 style={{ fontSize: '13px', fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>
+              Tasks to complete ({study.tasks.length})
+            </h3>
+            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>
+              {study.tasks.map(t => (
+                <li key={t.id} style={{ marginBottom: '4px' }}>
+                  <strong>{t.title}</strong>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-          Click through the prototype below. When you're done, use the "I'm done" button.
+          Click through the prototype as instructed. When you're done, complete the tasks.
         </p>
         <button className="btn btn-primary" onClick={handleStart}>
-          Start
+          Start Usability Study
         </button>
       </CenteredMessage>
     );
@@ -132,6 +170,9 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
   }
 
   // stage === 'active'
+  const activeTask = study?.tasks && study.tasks.length > 0 ? study.tasks[activeTaskIndex] : null;
+  const iframeSrc = study?.figmaUrl ? getEmbedUrl(study.figmaUrl, activeTask?.startingFrameNodeId) : '';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <div style={{
@@ -141,12 +182,59 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
         padding: '12px 20px',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--card-bg)',
+        gap: '20px',
+        flexWrap: 'wrap'
       }}>
-        <span style={{ fontWeight: 600, fontSize: '14px' }}>{study?.title}</span>
-        <button className="btn btn-primary" onClick={handleFinish}>
-          I'm done
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Usability Study</span>
+          <span style={{ fontWeight: 600, fontSize: '15px' }}>{study?.title}</span>
+        </div>
+
+        {activeTask && (
+          <div style={{ 
+            flex: 1, 
+            maxWidth: '600px', 
+            backgroundColor: 'var(--bg)', 
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '8px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>
+              TASK {activeTaskIndex + 1} OF {study?.tasks?.length || 0}: <strong style={{ color: 'var(--text)' }}>{activeTask.title}</strong>
+            </span>
+            <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+              {activeTask.instruction}
+            </p>
+          </div>
+        )}
+
+        <div>
+          {study?.tasks && activeTaskIndex < study.tasks.length - 1 ? (
+            <button 
+              className="btn btn-primary" 
+              onClick={() => {
+                const nextIndex = activeTaskIndex + 1;
+                setActiveTaskIndex(nextIndex);
+                const nextTask = study?.tasks ? study.tasks[nextIndex] : null;
+                previousNodeId.current = nextTask?.startingFrameNodeId || null;
+                setIframeLoading(true);
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              Next Task ➔
+            </button>
+          ) : (
+            <button className="btn btn-primary" onClick={handleFinish}>
+              Finish Study
+            </button>
+          )}
+        </div>
       </div>
+
       <div style={{ flex: 1, position: 'relative', backgroundColor: 'black' }}>
         {iframeLoading && (
           <div style={{
@@ -158,7 +246,8 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
           </div>
         )}
         <iframe
-          src={getEmbedUrl(study?.figmaUrl || '')}
+          key={activeTaskIndex}
+          src={iframeSrc}
           title="Usability test prototype"
           allowFullScreen
           onLoad={() => setIframeLoading(false)}

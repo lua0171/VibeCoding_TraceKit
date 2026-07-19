@@ -28,6 +28,7 @@ export interface StudyTask {
   id: string;
   title: string;
   instruction: string;
+  startingFrameNodeId?: string;
   expectedPath?: RecordedPath;
 }
 
@@ -59,6 +60,8 @@ export interface TrackedEvent {
   // navigation-only
   fromNodeId?: string;
   toNodeId?: string;
+  taskId?: string;
+  screenId?: string;
 }
 
 export interface Session {

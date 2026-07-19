@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ClipboardList, Smartphone, HelpCircle, Loader2, Save, AlertCircle, Trash2, ExternalLink, AlertTriangle, Plus, X, ChevronUp, ChevronDown, Edit2, Monitor, Tablet, Link2, Check } from 'lucide-react';
 import { db, type Study, type SurveyQuestion, type StudyTask, type ClickedElement, type RecordedPath } from '../db/db';
 
@@ -132,6 +132,9 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
   const [iframeLoading, setIframeLoading] = useState(false);
   const [figmaFeedback, setFigmaFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Ref to hold current active frame name during task recording
+  const activeFrameRef = useRef<string>('Home View');
+
   // Load study details on mount or ID change
   useEffect(() => {
     const fetchStudy = async () => {
@@ -191,12 +194,19 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
   }, [studyId]);
 
   // Convert standard Figma links to official embed URLs
-  const getEmbedUrl = (url: string): string => {
+  const getEmbedUrl = (url: string, nodeId?: string): string => {
     if (!url) return '';
-    if (url.includes('figma.com/embed')) {
-      return url;
+    let targetUrl = url;
+    if (nodeId) {
+      const separator = url.includes('?') ? '&' : '?';
+      if (!url.includes('node-id=')) {
+        targetUrl = `${url}${separator}node-id=${encodeURIComponent(nodeId)}`;
+      }
     }
-    return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(url)}`;
+    if (targetUrl.includes('figma.com/embed')) {
+      return targetUrl;
+    }
+    return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(targetUrl)}`;
   };
 
   // Check if URL is valid Figma link
@@ -457,6 +467,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
   const [editingTask, setEditingTask] = useState<StudyTask | null>(null);
   const [taskTitleInput, setTaskTitleInput] = useState('');
   const [taskInstructionInput, setTaskInstructionInput] = useState('');
+  const [taskStartingFrameNodeIdInput, setTaskStartingFrameNodeIdInput] = useState('');
   const [taskFeedback, setTaskFeedback] = useState<string | null>(null);
 
   // Recording expected solution states
@@ -485,10 +496,51 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
       });
   };
 
+  // Listen for Figma message events during expected path recording
+  useEffect(() => {
+    if (!isRecordingModalOpen || !recordingTask) return;
+
+    const handleFigmaMessage = (event: MessageEvent) => {
+      if (event.origin !== 'https://www.figma.com') return;
+      const { type, data } = event.data || {};
+
+      if (type === 'MOUSE_PRESS_OR_RELEASE' && data) {
+        const timeElapsed = Date.now() - recordingStartTime;
+        const currentFrame = activeFrameRef.current;
+        const targetName = data.targetNodeId || 'Figma Node';
+        
+        const newClick: ClickedElement = {
+          targetName,
+          timestamp: timeElapsed,
+          frameName: currentFrame
+        };
+        setRecordingSteps(prev => [...prev, newClick]);
+      } else if (type === 'PRESENTED_NODE_CHANGED' && data) {
+        const toNodeId = data.presentedNodeId;
+        if (!toNodeId) return;
+
+        activeFrameRef.current = toNodeId;
+        setRecordingFrames(prev => {
+          if (prev.length === 0) {
+            return [toNodeId];
+          }
+          if (prev[prev.length - 1] === toNodeId) {
+            return prev;
+          }
+          return [...prev, toNodeId];
+        });
+      }
+    };
+
+    window.addEventListener('message', handleFigmaMessage);
+    return () => window.removeEventListener('message', handleFigmaMessage);
+  }, [isRecordingModalOpen, recordingTask, recordingStartTime]);
+
   // Tasks operations
   const resetTaskForm = () => {
     setTaskTitleInput('');
     setTaskInstructionInput('');
+    setTaskStartingFrameNodeIdInput('');
     setEditingTask(null);
     setTaskFeedback(null);
   };
@@ -497,6 +549,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
     setEditingTask(task);
     setTaskTitleInput(task.title);
     setTaskInstructionInput(task.instruction);
+    setTaskStartingFrameNodeIdInput(task.startingFrameNodeId || '');
     setTaskFeedback(null);
     setIsTaskModalOpen(true);
   };
@@ -523,7 +576,8 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
           return {
             ...t,
             title: taskTitleInput.trim(),
-            instruction: taskInstructionInput.trim()
+            instruction: taskInstructionInput.trim(),
+            startingFrameNodeId: taskStartingFrameNodeIdInput.trim() || undefined
           };
         }
         return t;
@@ -532,7 +586,8 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
       const newTask: StudyTask = {
         id: 'task_' + Date.now().toString(),
         title: taskTitleInput.trim(),
-        instruction: taskInstructionInput.trim()
+        instruction: taskInstructionInput.trim(),
+        startingFrameNodeId: taskStartingFrameNodeIdInput.trim() || undefined
       };
       updatedTasks = [...currentTasks, newTask];
     }
@@ -584,9 +639,13 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
     setRecordingTask(task);
     setRecordingStartTime(Date.now());
     setRecordingSteps([]);
-    setRecordingFrames([]);
-    // Dynamically set starting frame guess
-    setRecordingFrames(['Home View']);
+    if (task.startingFrameNodeId) {
+      setRecordingFrames([task.startingFrameNodeId]);
+      activeFrameRef.current = task.startingFrameNodeId;
+    } else {
+      setRecordingFrames([]);
+      activeFrameRef.current = 'Home View';
+    }
     setCustomFrameInput('');
     setCustomClickInput('');
     setRecordingIframeLoading(true);
@@ -595,6 +654,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
   const handleLogFrameChange = (frameName: string) => {
     if (!frameName.trim()) return;
+    activeFrameRef.current = frameName.trim();
     setRecordingFrames([...recordingFrames, frameName.trim()]);
     setCustomFrameInput('');
   };
@@ -2645,6 +2705,31 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                     }}
                   />
                 </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                    Starting Frame Node ID (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={taskStartingFrameNodeIdInput}
+                    onChange={e => setTaskStartingFrameNodeIdInput(e.target.value)}
+                    placeholder="e.g. 1:12 (found in Figma URL as &node-id=...)"
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border)',
+                      backgroundColor: 'var(--input-bg)',
+                      color: 'var(--text)',
+                      fontSize: '14px',
+                      outline: 'none',
+                      width: '100%'
+                    }}
+                  />
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    Loads this specific frame as the start screen for the task when recording or testing.
+                  </span>
+                </div>
               </div>
 
               <div style={{
@@ -2989,7 +3074,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                 )}
 
                 <iframe
-                  src={getEmbedUrl(study.figmaUrl || '')}
+                  src={getEmbedUrl(study.figmaUrl || '', recordingTask.startingFrameNodeId)}
                   title="Recording Figma Embed Prototype"
                   allowFullScreen
                   onLoad={() => setRecordingIframeLoading(false)}
