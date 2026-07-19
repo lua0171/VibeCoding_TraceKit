@@ -35,6 +35,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   
   const [isEditingMin, setIsEditingMin] = useState(false);
   const [tempMin, setTempMin] = useState(10);
+  const [detailsLinkCopied, setDetailsLinkCopied] = useState(false);
 
   // Load studies on mount or when refreshTrigger updates
   const loadStudies = async () => {
@@ -402,6 +403,51 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </button>
                 </div>
               )}
+
+              {/* Copy Participant Link Box */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '16px',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--card-bg)',
+                marginTop: '20px',
+                marginBottom: '20px'
+              }}>
+                <span className="details-section-label" style={{ margin: 0, fontSize: '11px' }}>Participant Study Link</span>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${window.location.origin}${window.location.pathname}?session=${selectedStudy.id}`}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      backgroundColor: 'var(--bg)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: 'var(--text-muted)'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      const participantUrl = `${window.location.origin}${window.location.pathname}?session=${selectedStudy.id}`;
+                      navigator.clipboard.writeText(participantUrl).then(() => {
+                        setDetailsLinkCopied(true);
+                        setTimeout(() => setDetailsLinkCopied(false), 2000);
+                      });
+                    }}
+                    style={{ fontSize: '12px', height: '34px', whiteSpace: 'nowrap', gap: '6px', display: 'flex', alignItems: 'center' }}
+                  >
+                    {detailsLinkCopied ? 'Copied! ✓' : 'Copy Link'}
+                  </button>
+                </div>
+              </div>
 
               {/* Participant Progress Panel */}
               <div className="details-participants-section" style={{
