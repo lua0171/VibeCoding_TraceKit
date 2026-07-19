@@ -70,12 +70,7 @@ const STANDARDIZED_QUESTIONNAIRES: StandardizedQuestionnaire[] = [
   }
 ];
 
-const standardScreens = [
-  { id: 'Home View', name: 'Home View', desc: 'Landing / Splash frame' },
-  { id: 'Dashboard View', name: 'Dashboard View', desc: 'Main app overview dashboard' },
-  { id: 'Search View', name: 'Search View', desc: 'Search & filter listing frame' },
-  { id: 'Profile View', name: 'Profile View', desc: 'User profile settings frame' }
-];
+
 
 interface StudyConfigurationProps {
   studyId: string;
@@ -783,10 +778,6 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
       </div>
     );
   }
-
-  const screens = (study?.importedPrototype?.frames && study.importedPrototype.frames.length > 0)
-    ? study.importedPrototype.frames.map(f => ({ id: f.id, name: f.name, desc: 'Imported Figma Frame', imageUrl: f.imageUrl }))
-    : standardScreens.map(s => ({ ...s, imageUrl: undefined }));
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
@@ -2747,131 +2738,9 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                     />
                   </div>
 
-                  {/* Select Start Screen Frame Card Grid */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
-                      Select Start Screen Frame
-                    </label>
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: 'repeat(2, 1fr)', 
-                      gap: '10px',
-                      marginBottom: '4px'
-                    }}>
-                      {screens.map(scr => {
-                        const isSelected = taskStartingFrameNodeIdInput === scr.id;
-                        return (
-                          <div
-                            key={scr.id}
-                            onClick={() => setTaskStartingFrameNodeIdInput(scr.id)}
-                            style={{
-                              border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)',
-                              borderRadius: 'var(--radius-md)',
-                              padding: '10px',
-                              backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.04)' : 'var(--bg)',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '6px',
-                              position: 'relative',
-                              textAlign: 'left'
-                            }}
-                          >
-                            <div style={{
-                              height: '48px',
-                              backgroundColor: 'var(--card-bg)',
-                              border: '1px solid var(--border)',
-                              borderRadius: 'var(--radius-sm)',
-                              overflow: 'hidden',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              padding: '4px',
-                              gap: '3px'
-                            }}>
-                              {scr.imageUrl ? (
-                                <img
-                                  src={scr.imageUrl}
-                                  alt={scr.name}
-                                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                />
-                              ) : (
-                                <>
-                                  {scr.id === 'Home View' && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', height: '100%' }}>
-                                      <div style={{ height: '5px', width: '40%', backgroundColor: 'var(--text-muted)', borderRadius: '1px' }} />
-                                      <div style={{ flex: 1, border: '1px dashed var(--border)', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <div style={{ height: '6px', width: '20px', backgroundColor: 'var(--primary)', borderRadius: '1px' }} />
-                                      </div>
-                                    </div>
-                                  )}
-                                  {scr.id === 'Dashboard View' && (
-                                    <div style={{ display: 'flex', gap: '3px', height: '100%' }}>
-                                      <div style={{ width: '10px', backgroundColor: 'var(--border)', borderRadius: '1px' }} />
-                                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                        <div style={{ height: '5px', backgroundColor: 'var(--border)', borderRadius: '1px' }} />
-                                        <div style={{ display: 'flex', gap: '2px', flex: 1 }}>
-                                          <div style={{ flex: 1, backgroundColor: 'var(--primary)', opacity: 0.15, borderRadius: '1px' }} />
-                                          <div style={{ flex: 1, backgroundColor: 'var(--primary)', opacity: 0.3, borderRadius: '1px' }} />
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {scr.id === 'Search View' && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', height: '100%' }}>
-                                      <div style={{ height: '6px', border: '1px solid var(--border)', borderRadius: '2px', display: 'flex', alignItems: 'center', padding: '0 2px' }}>
-                                        <div style={{ height: '2px', width: '10px', backgroundColor: 'var(--text-muted)', borderRadius: '1px' }} />
-                                      </div>
-                                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px', flex: 1 }}>
-                                        <div style={{ backgroundColor: 'var(--border)', borderRadius: '1px' }} />
-                                        <div style={{ backgroundColor: 'var(--border)', borderRadius: '1px' }} />
-                                        <div style={{ backgroundColor: 'var(--border)', borderRadius: '1px' }} />
-                                      </div>
-                                    </div>
-                                  )}
-                                  {scr.id === 'Profile View' && (
-                                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center', height: '100%', padding: '0 2px' }}>
-                                      <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'var(--border)', flexShrink: 0 }} />
-                                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                        <div style={{ height: '4px', width: '60%', backgroundColor: 'var(--text)', borderRadius: '1px' }} />
-                                        <div style={{ height: '3px', width: '40%', backgroundColor: 'var(--text-muted)', borderRadius: '1px' }} />
-                                      </div>
-                                    </div>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                            
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {scr.name}
-                              </span>
-                              {isSelected && (
-                                <span style={{
-                                  width: '12px',
-                                  height: '12px',
-                                  borderRadius: '50%',
-                                  backgroundColor: 'var(--primary)',
-                                  color: 'white',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '8px',
-                                  fontWeight: 'bold'
-                                }}>
-                                  ✓
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
-                      Or Custom Starting Frame Node ID (Optional)
+                      Starting Frame Node ID
                     </label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input
