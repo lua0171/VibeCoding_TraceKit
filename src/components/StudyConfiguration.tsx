@@ -2738,6 +2738,45 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                     />
                   </div>
 
+                  {/* Select Flow Starting Point Dropdown */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                      Flow Starting Point
+                    </label>
+                    <select
+                      value={taskStartingFrameNodeIdInput}
+                      onChange={e => {
+                        setTaskStartingFrameNodeIdInput(e.target.value);
+                        if (isVisualSelectorOpen) {
+                          setActiveSelectorFrame(e.target.value);
+                        }
+                      }}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--input-bg)',
+                        color: 'var(--text)',
+                        fontSize: '14px',
+                        outline: 'none',
+                        width: '100%'
+                      }}
+                    >
+                      <option value="">-- Choose Flow Starting Point --</option>
+                      {((study?.importedPrototype?.flowStartingPoints && study.importedPrototype.flowStartingPoints.length > 0)
+                        ? study.importedPrototype.flowStartingPoints
+                        : [
+                            { nodeId: 'Home View', name: 'Main Entry Flow (Home)' },
+                            { nodeId: 'Dashboard View', name: 'Dashboard Overview Flow' }
+                          ]
+                      ).map(f => (
+                        <option key={f.nodeId} value={f.nodeId}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
                       Starting Frame Node ID

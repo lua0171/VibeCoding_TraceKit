@@ -18,6 +18,10 @@ export interface ImportedFrame {
 }
 
 export interface ImportedPrototype {
+  flowStartingPoints?: {
+    nodeId: string;
+    name: string;
+  }[];
   frames: ImportedFrame[];
 }
 
@@ -111,6 +115,21 @@ function extractHotspots(node: any, frameBox: any, hotspots: ImportedHotspot[] =
   return hotspots;
 }
 
+function findFlowStartingPoints(node: any, points: { nodeId: string; name: string }[] = []): { nodeId: string; name: string }[] {
+  if (node.type === 'CANVAS' && node.flowStartingPoints) {
+    node.flowStartingPoints.forEach((pt: any) => {
+      points.push({
+        nodeId: pt.nodeId,
+        name: pt.name || 'Unnamed Flow'
+      });
+    });
+  }
+  if (node.children) {
+    node.children.forEach((child: any) => findFlowStartingPoints(child, points));
+  }
+  return points;
+}
+
 export async function importPrototype(figmaUrl: string, token: string): Promise<ImportedPrototype> {
   const fileKey = extractFileKey(figmaUrl);
   if (!fileKey) {
@@ -132,6 +151,8 @@ export async function importPrototype(figmaUrl: string, token: string): Promise<
   if (!fileData.document) {
     throw new Error('Figma API response was successful but document structure was empty.');
   }
+
+  const flowStartingPoints = findFlowStartingPoints(fileData.document);
 
   const frames = findFrames(fileData.document);
   if (frames.length === 0) {
@@ -168,5 +189,8 @@ export async function importPrototype(figmaUrl: string, token: string): Promise<
     throw new Error('Figma frame images could not be generated. Please make sure your frames are not empty.');
   }
 
-  return { frames: importedFrames };
+  return {
+    flowStartingPoints,
+    frames: importedFrames
+  };
 }

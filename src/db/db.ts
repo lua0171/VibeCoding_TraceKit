@@ -48,6 +48,10 @@ export interface Study {
   postSurveyQuestions?: SurveyQuestion[];
   tasks?: StudyTask[];
   importedPrototype?: {
+    flowStartingPoints?: {
+      nodeId: string;
+      name: string;
+    }[];
     frames: {
       id: string;
       name: string;
