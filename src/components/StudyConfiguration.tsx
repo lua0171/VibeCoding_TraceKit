@@ -4,55 +4,7 @@ import { db, type Study, type SurveyQuestion, type StudyTask, type ClickedElemen
 import { PrototypeViewer } from './PrototypeViewer';
 import { importPrototype } from '../lib/figmaApi';
 
-const DEFAULT_QUESTIONS: SurveyQuestion[] = [
-  {
-    id: 'q1',
-    text: 'What is your age group?',
-    type: 'single_choice',
-    options: ['Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65 or older']
-  },
-  {
-    id: 'q2',
-    text: 'What is your gender? (Optional)',
-    type: 'dropdown',
-    options: ['Prefer not to say', 'Female', 'Male', 'Non-binary', 'Other']
-  },
-  {
-    id: 'q3',
-    text: 'What is your experience level with similar products/tools?',
-    type: 'single_choice',
-    options: ['None', 'Beginner', 'Intermediate', 'Advanced', 'Expert']
-  },
-  {
-    id: 'q4',
-    text: 'How familiar are you with this topic?',
-    type: 'rating',
-    ratingMin: 1,
-    ratingMax: 5,
-    ratingMinLabel: 'Not familiar at all',
-    ratingMaxLabel: 'Extremely familiar'
-  },
-  {
-    id: 'q5',
-    text: 'How often do you use similar tools/products?',
-    type: 'single_choice',
-    options: ['Daily', 'Weekly', 'Monthly', 'Rarely', 'Never']
-  },
-  {
-    id: 'q6',
-    text: 'Rate your general technical expertise level:',
-    type: 'rating',
-    ratingMin: 1,
-    ratingMax: 5,
-    ratingMinLabel: 'Novice',
-    ratingMaxLabel: 'Expert'
-  },
-  {
-    id: 'q7',
-    text: 'What is your professional background or industry?',
-    type: 'short_text'
-  }
-];
+
 
 interface StandardizedQuestionnaire {
   key: string;
@@ -161,7 +113,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
           if (preQuestionsEmpty || needsPostInit || tasksEmpty) {
             const updates: Partial<Study> = {};
             if (preQuestionsEmpty) {
-              updates.preSurveyQuestions = DEFAULT_QUESTIONS;
+              updates.preSurveyQuestions = [];
             }
             if (needsPostInit) {
               updates.postSurveyQuestionsMode = 'none';
