@@ -220,17 +220,40 @@ export const StudyDesignPage: React.FC<StudyDesignPageProps> = ({
         )}
 
         {study.figmaUrl && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handleCopyParticipantLink}
-            >
-              {linkCopied ? <Check size={16} /> : <Link2 size={16} />}
-              {linkCopied ? 'Link copied!' : 'Copy Participant Link'}
-            </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>
+              Shareable Participant Session Link
+            </label>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', width: '100%' }}>
+              <input
+                type="text"
+                readOnly
+                value={`${window.location.origin}${window.location.pathname}?session=${studyId}`}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-muted)',
+                  fontSize: '13px',
+                  outline: 'none',
+                  flexGrow: 1,
+                  fontFamily: 'monospace'
+                }}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleCopyParticipantLink}
+                style={{ minWidth: '160px', height: '38px', flexShrink: 0 }}
+              >
+                {linkCopied ? <Check size={16} /> : <Link2 size={16} />}
+                {linkCopied ? 'Link copied!' : 'Copy Link'}
+              </button>
+            </div>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Share this with participants to start a tracked session.
+              Share this URL with participants to start recording their usability interaction sessions.
             </span>
           </div>
         )}
