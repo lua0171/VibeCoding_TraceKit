@@ -80,7 +80,7 @@ function App() {
             }}
             onNavigateToStudyDesign={(studyId) => {
               setSelectedStudyId(studyId);
-              setView('study-design');
+              setView('configure-study');
             }}
             onNavigateToStudyResults={(studyId) => {
               setSelectedStudyId(studyId);

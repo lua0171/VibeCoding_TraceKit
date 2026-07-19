@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ClipboardList, Smartphone, HelpCircle, Loader2, Save, AlertCircle, Trash2, ExternalLink, AlertTriangle, Plus, X, ChevronUp, ChevronDown, Edit2 } from 'lucide-react';
+import { ArrowLeft, ClipboardList, Smartphone, HelpCircle, Loader2, Save, AlertCircle, Trash2, ExternalLink, AlertTriangle, Plus, X, ChevronUp, ChevronDown, Edit2, Monitor, Tablet, Link2, Check } from 'lucide-react';
 import { db, type Study, type SurveyQuestion, type StudyTask, type ClickedElement, type RecordedPath } from '../db/db';
 
 const DEFAULT_QUESTIONS: SurveyQuestion[] = [
@@ -468,6 +468,22 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
   const [customFrameInput, setCustomFrameInput] = useState('');
   const [customClickInput, setCustomClickInput] = useState('');
   const [recordingIframeLoading, setRecordingIframeLoading] = useState(false);
+
+  // Viewport and Link copying states
+  const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const handleCopyParticipantLink = () => {
+    const participantUrl = `${window.location.origin}${window.location.pathname}?session=${studyId}`;
+    navigator.clipboard.writeText(participantUrl)
+      .then(() => {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      })
+      .catch(err => {
+        console.error('Failed to copy participant link:', err);
+      });
+  };
 
   // Tasks operations
   const resetTaskForm = () => {
@@ -1229,7 +1245,87 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                 </div>
               </div>
 
-              {/* Preview Canvas (Desktop standard frame layout only) */}
+              {/* Preview controls (Viewport select & Link copying) */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginTop: '4px' }}>
+                {/* Viewport controls */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>Device Viewport:</span>
+                  <div style={{ display: 'flex', backgroundColor: 'rgba(0, 0, 0, 0.03)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '2px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setViewport('desktop')}
+                      className={`btn btn-secondary`}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        height: 'auto',
+                        border: 'none',
+                        boxShadow: 'none',
+                        backgroundColor: viewport === 'desktop' ? 'var(--card-bg)' : 'transparent',
+                        color: viewport === 'desktop' ? 'var(--primary)' : 'var(--text-muted)',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Monitor size={12} style={{ marginRight: '4px' }} /> Desktop
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewport('tablet')}
+                      className={`btn btn-secondary`}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        height: 'auto',
+                        border: 'none',
+                        boxShadow: 'none',
+                        backgroundColor: viewport === 'tablet' ? 'var(--card-bg)' : 'transparent',
+                        color: viewport === 'tablet' ? 'var(--primary)' : 'var(--text-muted)',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Tablet size={12} style={{ marginRight: '4px' }} /> Tablet
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewport('mobile')}
+                      className={`btn btn-secondary`}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        height: 'auto',
+                        border: 'none',
+                        boxShadow: 'none',
+                        backgroundColor: viewport === 'mobile' ? 'var(--card-bg)' : 'transparent',
+                        color: viewport === 'mobile' ? 'var(--primary)' : 'var(--text-muted)',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Smartphone size={12} style={{ marginRight: '4px' }} /> Mobile
+                    </button>
+                  </div>
+                </div>
+
+                {/* Copy Participant Link */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleCopyParticipantLink}
+                    style={{ fontSize: '11px', height: '28px', padding: '0 10px', gap: '4px', display: 'flex', alignItems: 'center' }}
+                  >
+                    {linkCopied ? <Check size={12} /> : <Link2 size={12} />}
+                    {linkCopied ? 'Link copied!' : 'Copy Participant Link'}
+                  </button>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    For tracked testing sessions.
+                  </span>
+                </div>
+              </div>
+
+              {/* Preview Canvas (Dynamic viewport width frame layout) */}
               <div style={{
                 position: 'relative',
                 backgroundColor: 'black',
@@ -1237,8 +1333,10 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                 border: '1px solid var(--border)',
                 boxShadow: 'var(--shadow-md)',
                 overflow: 'hidden',
-                width: '100%',
-                height: '500px'
+                width: viewport === 'desktop' ? '100%' : viewport === 'tablet' ? '768px' : '375px',
+                height: '500px',
+                margin: '0 auto',
+                transition: 'width 0.3s ease'
               }}>
                 {iframeLoading && (
                   <div style={{
