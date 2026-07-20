@@ -6,7 +6,7 @@ Privacy-first, local-only usability testing tool (Figma prototype playback + cli
 
 ## Current implementation status (as of 2026-07-20)
 
-Most PRD modules now have real, working implementations — this moved fast. React 19 + Vite + TypeScript, `oxlint` for linting, no backend/SQLite yet (`src/db/db.ts` is still a `localStorage`-backed mock with a simulated 400ms delay). Styling is a hand-written CSS custom-property system in `src/index.css` (no Tailwind — the PRD used to claim Tailwind, corrected 2026-07-20 to match what's actually built).
+Most PRD modules now have real, working implementations — this moved fast. React 19 + Vite + TypeScript, `oxlint` for linting. No backend/SQLite — `src/db/db.ts` is a `localStorage`-backed data layer with a simulated 400ms delay, and as of 2026-07-20 the PRD documents this as the deliberate MVP choice (not a TODO): no real need for a server has come up, and it keeps deployment to "just open the app." Don't build a Node/Express+SQLite backend unless a concrete need justifies it. Styling is a hand-written CSS custom-property system in `src/index.css` (no Tailwind — the PRD used to claim Tailwind, corrected 2026-07-20 to match what's actually built).
 
 **Prototype rendering pivoted away from Figma's iframe embed entirely.** The live architecture fetches frames via the Figma REST API and renders them natively in the DOM — no iframe, no cross-origin restrictions, no Figma OAuth app/client-id needed:
 - `src/lib/figmaApi.ts`: `importPrototype(figmaUrl, token)` calls Figma's REST API (`GET /v1/files/{key}`, `GET /v1/images/{key}`) using a **Figma personal access token**, configured in Settings (gear icon) and stored at `localStorage['tracekit_figma_token']`.
