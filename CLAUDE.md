@@ -42,6 +42,14 @@ Still present from before that: **`src/components/EditStudyModal.tsx` and `src/c
 - `lucide-react` is the icon set in use.
 - No router library — `?session=` is read directly via `window.location.search` in `App.tsx`. Don't reach for `react-router` for a single param.
 
+## Testing (added 2026-07-20)
+
+There was no automated test suite at all before this — two real regressions in this project's history (a broken study-creation flow, several orphaned files after a large parallel merge) went unnoticed until manually caught. `npm run test` (Vitest, `jsdom` environment, config in `vite.config.ts`'s `test` block) now covers the two most fragile/most-reused modules:
+- `src/db/db.ts` → `db.test.ts`: study CRUD, session/event lifecycle, hypothesis save-and-merge semantics.
+- `src/lib/analysis.ts` → `analysis.test.ts`: the two-pass loop, with `lib/ai.ts`'s `generateFromAi` mocked (`vi.mock('./ai', ...)`) so tests don't hit a real Ollama/network — covers seeding from `initialHypotheses`, not re-seeding on rerun, Pass 1 merge, Pass 2 discovery, closed-hypotheses exclusion, and persistence.
+
+**Not covered yet, worth adding next if you're extending this:** any React component (Dashboard, StudyConfiguration, StudyResultsPage, ParticipantSession, PrototypeViewer), `lib/figmaApi.ts`'s response parsing, `lib/ai.ts`'s two fetch branches. This is a starting foundation, not full coverage — when you touch one of the untested files, consider adding a test alongside the change rather than treating the gap as permanent.
+
 ## Open from professor feedback (see PRD.md for the full spec)
 
 - Hypothesis Validation Loop (two-pass biased/unbiased + manual closing) — **implemented and verified live**, both the generation (`lib/analysis.ts`) and the closing/locking UI (`StudyResultsPage.tsx`, `status: 'closed'` in `db.ts`).
