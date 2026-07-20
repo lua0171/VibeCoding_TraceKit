@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { StudyConfiguration } from './components/StudyConfiguration';
-import { StudyDesignPage } from './components/StudyDesignPage';
-import { CreateStudyPage } from './components/CreateStudyPage';
 import { ParticipantSession } from './components/ParticipantSession';
 import { StudyResultsPage } from './components/StudyResultsPage';
 import { SettingsModal } from './components/SettingsModal';
@@ -10,7 +8,7 @@ import { ShieldCheck, Globe, Settings } from 'lucide-react';
 import { getAiConfig } from './lib/config';
 import { useEffect } from 'react';
 
-type View = 'dashboard' | 'create-study' | 'configure-study' | 'study-design' | 'study-results';
+type View = 'dashboard' | 'configure-study' | 'study-results';
 
 function App() {
   const [view, setView] = useState<View>('dashboard');
@@ -88,28 +86,10 @@ function App() {
             }}
             refreshTrigger={refreshTrigger}
           />
-        ) : view === 'create-study' ? (
-          <CreateStudyPage
-            onBack={() => setView('dashboard')}
-            onStudyCreated={(studyId) => {
-              setSelectedStudyId(studyId);
-              setRefreshTrigger(prev => prev + 1);
-              setView('configure-study');
-            }}
-          />
         ) : view === 'configure-study' ? (
-          <StudyConfiguration 
+          <StudyConfiguration
             studyId={selectedStudyId || ''}
             mode="edit"
-            onBack={() => {
-              setSelectedStudyId(null);
-              setRefreshTrigger(prev => prev + 1);
-              setView('dashboard');
-            }}
-          />
-        ) : view === 'study-design' ? (
-          <StudyDesignPage 
-            studyId={selectedStudyId || ''} 
             onBack={() => {
               setSelectedStudyId(null);
               setRefreshTrigger(prev => prev + 1);
