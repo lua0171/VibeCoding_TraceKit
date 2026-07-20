@@ -185,6 +185,29 @@ h1, h2, h3, h4 {
   text-decoration: none;
 }
 
+.btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Hotspot overlays on the prototype viewer: invisible until hovered/focused/hinted */
+.prototype-hotspot:hover,
+.prototype-hotspot:focus-visible {
+  background-color: rgba(59, 130, 246, 0.4) !important;
+  border-color: var(--primary) !important;
+}
+
+.prototype-hotspot:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* Survey single/multiple-choice option buttons (ParticipantSession) */
+.survey-option-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .btn-primary {
   background-color: var(--primary);
   color: var(--text-inverse);

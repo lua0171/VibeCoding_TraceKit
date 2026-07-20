@@ -50,6 +50,21 @@ There was no automated test suite at all before this — two real regressions in
 
 **Not covered yet, worth adding next if you're extending this:** any React component (Dashboard, StudyConfiguration, StudyResultsPage, ParticipantSession, PrototypeViewer), `lib/figmaApi.ts`'s response parsing, `lib/ai.ts`'s two fetch branches. This is a starting foundation, not full coverage — when you touch one of the untested files, consider adding a test alongside the change rather than treating the gap as permanent.
 
+## Accessibility (audited 2026-07-20 against the Vercel Web Interface Guidelines)
+
+A full audit (two parallel passes covering every component) found ~70 findings — full triage happened in chat, not persisted verbatim, but the three most severe ones (functional blockers, not polish) are **fixed**:
+- **`PrototypeViewer.tsx`**: hotspots were invisible, geometry-hit-tested `<div>`s reachable only by mouse. Now real always-in-DOM `<button>`s (`renderHotspots()`), `aria-label={hs.name}`, native Enter/Space activation, `.prototype-hotspot:hover`/`:focus-visible` CSS highlight (was previously only a 500ms mouse-miss flash). Verified live: Tab-focus shows the highlight, Enter navigates exactly like a click.
+- **`ParticipantSession.tsx`**: `single_choice`/`multiple_choice` survey questions were `<div onClick>` (the multiple_choice checkbox was `readOnly`+`pointerEvents:none`, fully inert) — keyboard users could not answer them. Now real `<button role="radio"|"checkbox" aria-checked>` with a `.survey-option-btn` class for focus styling. `yes_no` and `rating` question types already used real `<button>`s and needed no change.
+- **App-wide invisible focus indicator**: `.btn` in `index.css` set `outline: none` with zero replacement — added `.btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }`, fixing every `.btn`-classed control (~50+ instances) in one place. (`.form-control` already had a `:focus` box-shadow ring — not zero indicator, just not `:focus-visible`-scoped; left alone.)
+
+**Not fixed, deliberately scoped out this round** (ask before assuming any of this is done):
+- Zero `aria-live` regions anywhere in the app — every save/import/validation confirmation or error is silent to screen readers (Dashboard, CreateStudyModal, StudyConfiguration, ParticipantSession all affected).
+- `StudyConfiguration.tsx`: 0 `htmlFor`/`id` pairs across 13 `<label>`s (labels don't focus their control on click); wizard step tabs (`"Surveys & Prototype Link"` / `"Tasks"`, ~line 836/876) are keyboard-dead `<div onClick>`s; ~15 icon-only buttons with no `aria-label` (rely on `title` or nothing); custom modals (question builder, task modal, path recording) lack `role="dialog"`/`aria-modal`/`aria-labelledby` unlike `CreateStudyModal`/`DeleteConfirmationModal` which do this correctly; several `window.confirm()` calls instead of the app's own confirmation-modal pattern.
+- **`Heatmap.tsx`'s `<canvas>` heatmap has no non-visual equivalent** — no `aria-label`, no text/data summary of click density. The app's core analysis output is currently invisible to screen-reader users; this is probably the single most important remaining gap given it's the product's headline feature, but it needs a real design decision (a companion data table? per the PRD's own "accessible charts and heatmaps" requirement), not a quick attribute fix.
+- No unsaved-changes / `beforeunload` warning anywhere (StudyConfiguration's in-progress forms, ParticipantSession's in-progress survey/task).
+- Typography nits (`...` → `…`, straight quotes → curly) scattered across StudyConfiguration.tsx and elsewhere.
+- Dashboard.tsx: search input has no label, several icon buttons rely on `title` only, clickable study-frame-cards have no keyboard handler at all (separate from the wizard-tab issue above).
+
 ## Open from professor feedback (see PRD.md for the full spec)
 
 - Hypothesis Validation Loop (two-pass biased/unbiased + manual closing) — **implemented and verified live**, both the generation (`lib/analysis.ts`) and the closing/locking UI (`StudyResultsPage.tsx`, `status: 'closed'` in `db.ts`).

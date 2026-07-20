@@ -40,6 +40,9 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
     return () => clearTimeout(timer);
   };
 
+  // Fallback for clicks that land outside any hotspot button (a "miss") --
+  // hits are now handled directly by each hotspot's own <button onClick>,
+  // which stops propagation so this only ever sees misses.
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly || !containerRef.current) return;
 
@@ -47,30 +50,20 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
     const clickX = (e.clientX - rect.left) / rect.width;
     const clickY = (e.clientY - rect.top) / rect.height;
 
-    const hotspots = isImported ? activeImportedFrame?.hotspots : activeMockFrame?.hotspots;
-    if (!hotspots) return;
+    if (onClick) {
+      onClick(clickX, clickY, 'Missed Hotspot', false);
+    }
+    triggerHintsFlash();
+  };
 
-    const hitHotspot = hotspots.find(hs => {
-      return (
-        clickX >= hs.x &&
-        clickX <= hs.x + hs.width &&
-        clickY >= hs.y &&
-        clickY <= hs.y + hs.height
-      );
-    });
-
-    if (hitHotspot) {
-      if (onClick) {
-        onClick(clickX, clickY, hitHotspot.name, true);
-      }
-      if (onNavigate) {
-        onNavigate(hitHotspot.targetFrameId);
-      }
-    } else {
-      if (onClick) {
-        onClick(clickX, clickY, 'Missed Hotspot', false);
-      }
-      triggerHintsFlash();
+  const handleHotspotActivate = (e: React.MouseEvent | React.KeyboardEvent, hs: { x: number; y: number; name: string; targetFrameId: string }) => {
+    e.stopPropagation();
+    if (readOnly) return;
+    if (onClick) {
+      onClick(hs.x, hs.y, hs.name, true);
+    }
+    if (onNavigate) {
+      onNavigate(hs.targetFrameId);
     }
   };
 
@@ -79,6 +72,35 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
     : 1.5;
 
   const hotspots = isImported ? activeImportedFrame?.hotspots : activeMockFrame?.hotspots;
+
+  // Hotspots are real, always-present, keyboard-focusable buttons (not
+  // mouse-only geometry) -- transparent by default, highlighted on
+  // hover/focus/hint-flash via the .prototype-hotspot CSS class.
+  const renderHotspots = () => {
+    if (readOnly || !hotspots) return null;
+    return hotspots.map(hs => (
+      <button
+        key={hs.id}
+        type="button"
+        aria-label={hs.name}
+        className="prototype-hotspot"
+        onClick={(e) => handleHotspotActivate(e, hs)}
+        style={{
+          position: 'absolute',
+          left: `${hs.x * 100}%`,
+          top: `${hs.y * 100}%`,
+          width: `${hs.width * 100}%`,
+          height: `${hs.height * 100}%`,
+          backgroundColor: showHints ? 'rgba(59, 130, 246, 0.4)' : 'transparent',
+          border: showHints ? '2px solid var(--primary)' : '2px solid transparent',
+          borderRadius: '4px',
+          padding: 0,
+          cursor: 'pointer',
+          zIndex: 999
+        }}
+      />
+    ));
+  };
 
   return (
     <div
@@ -117,23 +139,7 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
             style={{ width: '100%', height: '100%', display: 'block', pointerEvents: 'none', objectFit: 'contain' }}
           />
 
-          {!readOnly && showHints && hotspots?.map(hs => (
-            <div
-              key={hs.id}
-              style={{
-                position: 'absolute',
-                left: `${hs.x * 100}%`,
-                top: `${hs.y * 100}%`,
-                width: `${hs.width * 100}%`,
-                height: `${hs.height * 100}%`,
-                backgroundColor: 'rgba(59, 130, 246, 0.4)',
-                border: '2px solid var(--primary)',
-                borderRadius: '4px',
-                pointerEvents: 'none',
-                zIndex: 999
-              }}
-            />
-          ))}
+          {renderHotspots()}
         </div>
       ) : (
         <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
@@ -144,23 +150,7 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
             {activeMockFrame?.layoutType === 'profile' && renderProfileLayout()}
           </div>
 
-          {!readOnly && showHints && hotspots?.map(hs => (
-            <div
-              key={hs.id}
-              style={{
-                position: 'absolute',
-                left: `${hs.x * 100}%`,
-                top: `${hs.y * 100}%`,
-                width: `${hs.width * 100}%`,
-                height: `${hs.height * 100}%`,
-                backgroundColor: 'rgba(59, 130, 246, 0.4)',
-                border: '2px solid var(--primary)',
-                borderRadius: '4px',
-                pointerEvents: 'none',
-                zIndex: 999
-              }}
-            />
-          ))}
+          {renderHotspots()}
         </div>
       )}
     </div>

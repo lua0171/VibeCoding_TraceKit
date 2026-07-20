@@ -537,12 +537,16 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onS
               )}
 
               {q.type === 'single_choice' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div role="radiogroup" aria-label={q.text} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {q.options?.map(opt => {
                     const isSelected = answers[q.id] === opt;
                     return (
-                      <div
+                      <button
                         key={opt}
+                        type="button"
+                        role="radio"
+                        aria-checked={isSelected}
+                        className="survey-option-btn"
                         onClick={() => setAnswers(prev => ({ ...prev, [q.id]: opt }))}
                         style={{
                           padding: '12px 16px',
@@ -551,25 +555,30 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onS
                           backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.04)' : 'var(--bg)',
                           cursor: 'pointer',
                           fontSize: '14px',
+                          textAlign: 'left',
                           transition: 'all 0.15s ease',
                           color: 'var(--text)'
                         }}
                       >
                         {opt}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
               )}
 
               {q.type === 'multiple_choice' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div role="group" aria-label={q.text} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {q.options?.map(opt => {
                     const current = (answers[q.id] as string[]) || [];
                     const isSelected = current.includes(opt);
                     return (
-                      <div
+                      <button
                         key={opt}
+                        type="button"
+                        role="checkbox"
+                        aria-checked={isSelected}
+                        className="survey-option-btn"
                         onClick={() => {
                           const updated = isSelected
                             ? current.filter(x => x !== opt)
@@ -583,6 +592,7 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onS
                           backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.04)' : 'var(--bg)',
                           cursor: 'pointer',
                           fontSize: '14px',
+                          textAlign: 'left',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '12px',
@@ -594,10 +604,12 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onS
                           type="checkbox"
                           checked={isSelected}
                           readOnly
+                          tabIndex={-1}
+                          aria-hidden="true"
                           style={{ pointerEvents: 'none' }}
                         />
                         <span>{opt}</span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
