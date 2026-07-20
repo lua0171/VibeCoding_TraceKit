@@ -130,7 +130,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                 defaultTasks = [
                   { id: 'task_3', title: 'Inspect Ollama settings status', instruction: 'Go to the AI provider settings panel and check if local Ollama model connection has loaded.' }
                 ];
-              } else {
+              } else if (studyId === '3') {
                 defaultTasks = [
                   { id: 'task_4', title: 'Search for anxiety exercise', instruction: 'Open search, search for “anxiety relief meditation”, click the exercise, and run a 5-minute breathing session.' },
                   { id: 'task_5', title: 'Log a mood event', instruction: 'Click the “+” button in navigation, choose mood logging, select “Calm”, and click save.' }
