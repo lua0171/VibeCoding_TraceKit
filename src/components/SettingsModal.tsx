@@ -134,7 +134,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 className="form-control"
                 value={config.modelName}
                 onChange={(e) => setConfig({ ...config, modelName: e.target.value })}
-                placeholder={isExternal ? "gpt-4o-mini" : "llama3"}
+                placeholder={isExternal ? "gpt-4o-mini" : "llama3.2:1b"}
               />
             </div>
 

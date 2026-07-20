@@ -12,31 +12,28 @@ Most PRD modules now have real, working implementations — this moved fast. Rea
 - `src/lib/figmaApi.ts`: `importPrototype(figmaUrl, token)` calls Figma's REST API (`GET /v1/files/{key}`, `GET /v1/images/{key}`) using a **Figma personal access token**, configured in Settings (gear icon) and stored at `localStorage['tracekit_figma_token']`.
 - `src/components/PrototypeViewer.tsx`: renders the imported frame as an `<img>` with absolutely-positioned hotspot overlays; clicks are plain `onClick` handlers doing normalized-coordinate hit-testing — no postMessage involved.
 - `src/components/ParticipantSession.tsx` (the `?session=<studyId>` participant route, still bypasses the header/dashboard entirely per `App.tsx`) renders `PrototypeViewer` and calls `db.appendEvent` directly from its click/navigate callbacks.
-- **My earlier iframe + Embed Kit 2.0 approach (`src/lib/figma.ts`'s `getEmbedUrl`/`isValidFigmaUrl`, the `VITE_FIGMA_CLIENT_ID` env var, `.env.example`) is now only used by a page that's no longer reachable (see Dead code below).** If you were mid-setup on a Figma OAuth app for that, it's no longer needed — don't spend more time on it.
+- My earlier iframe + Embed Kit 2.0 approach (`lib/figma.ts`, `VITE_FIGMA_CLIENT_ID`, `.env.example`) has been **deleted** (commit `cbc96f2`) along with the other files that only it/them referenced — see Dead code cleanup below. Don't set up a Figma OAuth app for this project, it's not needed anywhere.
 
-**AI / hypothesis loop is implemented, not just spec'd:**
-- `src/lib/config.ts`: `AiProviderConfig` (Ollama vs. OpenAI-compatible BYOK) persisted to localStorage, configured via `SettingsModal.tsx`, incl. the external-provider consent checkbox and the header's "External AI Active" indicator (`App.tsx`, driven by a `window` `ai-config-changed` event).
+**AI / hypothesis loop is implemented and verified working end-to-end against a real local Ollama, not just spec'd:**
+- `src/lib/config.ts`: `AiProviderConfig` (Ollama vs. OpenAI-compatible BYOK) persisted to localStorage, configured via `SettingsModal.tsx`, incl. the external-provider consent checkbox and the header's "External AI Active" indicator (`App.tsx`, driven by a `window` `ai-config-changed` event). **Default model is `llama3.2:1b`, not `llama3`** — deliberately small (1.3GB) so it's usable on modest hardware (an 8GB RAM dev machine couldn't get a response from the 8B `llama3` within 2 minutes, presumably heavy swapping; `llama3.2:1b` responds in ~5-10s on the same machine). Bigger models are still one Settings change away for anyone with the RAM.
 - `src/lib/ai.ts`: `generateFromAi()` branches Ollama `/api/generate` vs. OpenAI-compatible `/v1/chat/completions`.
-- `src/lib/analysis.ts`: `runAnalysisLoop()` — a real two-pass implementation matching PRD § 5/6 (Pass 1 biased: evaluates open hypotheses against data; Pass 2 unbiased: discovers new ones, deduped against existing). Results persist via `db.saveHypotheses`/`getHypothesesByStudy`.
+- `src/lib/analysis.ts`: `runAnalysisLoop()` — a real two-pass implementation matching PRD § 5/6 (Pass 1 biased: evaluates open hypotheses against data; Pass 2 unbiased: discovers new ones, deduped against existing). Results persist via `db.saveHypotheses`/`getHypothesesByStudy`. Triggered from a "Run AI Analysis Loop" button in `StudyResultsPage.tsx`. **Verified live** (2026-07-20): ran the real button against real Ollama with synthetic session data — Pass 1 correctly confirmed a seeded hypothesis at 80% confidence, Pass 2 discovered 4 new ones, closing/locking (`status: 'closed'`, "Lock & Close" button once confidence > 80%) all present in `StudyResultsPage.tsx`.
+- `StudyConfiguration.tsx` now has a "Your Assumptions (Optional)" textarea section (added 2026-07-20, above the Pre-Study Questions section) writing to `study.initialHypotheses` — previously this field existed in the data model and `analysis.ts` read it, but nothing in the UI could ever set it. Newline-separated, matches `analysis.ts`'s parsing exactly.
 
 **Survey/task data model landed in `db.ts`:** `Study` gained `initialHypotheses`, `preSurveyQuestions`, `postSurveyQuestionsMode`/`postSurveyStandardizedKeys` (SUS/UEQ/UMUX-Lite/NASA-TLX built in) /`postSurveyQuestions`, `tasks: StudyTask[]`, `importedPrototype`. New types: `SurveyQuestion`, `SurveyResponse`, `StudyTask`, `ClickedElement`, `RecordedPath`, `Hypothesis`. My `Session`/`TrackedEvent`/`createSession`/`appendEvent`/`endSession`/`getSessionsByStudy` are all still present and still how click/navigation events get stored.
 
 **Navigation (`App.tsx`, still no router, `view` useState):** `dashboard` → `CreateStudyModal` (a modal, not a page) for creation → `configure-study` (`StudyConfiguration.tsx`, now a ~3300-line multi-step wizard covering pre/post survey, prototype import, and task configuration) → `study-results` (`StudyResultsPage.tsx`). `?session=<id>` in the URL still bypasses all of this for participants.
 
-## Dead code / orphaned files (confirmed unreachable, not just "maybe unused")
+## Dead code cleanup done on 2026-07-20 (commit `cbc96f2`)
 
-Grew a lot this round — check before building on any of these:
-- **`src/components/StudyDesignPage.tsx`** — unreachable. `App.tsx`'s `onNavigateToStudyDesign` and `onNavigateToStudyConfiguration` both route to the same `'configure-study'` view now; nothing sets `view` to `'study-design'` anymore. Includes a "Copy Participant Link" box that's therefore also dead.
-- **`src/components/CreateStudyPage.tsx`** — unreachable, same issue: nothing sets `view` to `'create-study'`; the Dashboard's "New Study" button opens `CreateStudyModal.tsx` instead.
-- **`src/lib/useClickTracking.ts` + `src/components/ClickTrackingOverlay.tsx`** — a parallel click-tracking implementation that was never wired into `ParticipantSession.tsx` (which uses `PrototypeViewer`'s native `onClick` instead). Not imported anywhere outside each other.
-- **`CLICK_TRACKING_README.md` and `FIGMA_EMBED_CONTRACT.md`** — document the above orphaned files/approach. Also factually stale even for that abandoned approach: they describe a `NEW_STATE` postMessage event for navigation, but Figma's real Embed API docs (verified 2026-07-18) use `PRESENTED_NODE_CHANGED` for navigation — `NEW_STATE` is a component-variant-change event. Don't trust either doc's event-shape claims.
-- **`src/components/EditStudyModal.tsx` and `src/components/CreateStudyPlaceholder.tsx`** — still dead from before, unchanged.
-- Two `.DS_Store` files got committed (`.DS_Store`, `src/.DS_Store`) despite `.gitignore` covering `.DS_Store` — they were added in a commit before `.gitignore` existed, so git kept tracking them. Harmless, but `git rm --cached` would clean it up.
+These are gone now, not just "dead but present" — don't go looking for them: `StudyDesignPage.tsx`, `CreateStudyPage.tsx`, `lib/useClickTracking.ts`, `ClickTrackingOverlay.tsx`, `lib/figma.ts`, `vite-env.d.ts`, `.env.example`, `CLICK_TRACKING_README.md`, `FIGMA_EMBED_CONTRACT.md`, two stray `.DS_Store` files. All were unreachable from `App.tsx`'s actual navigation (superseded by `StudyConfiguration`/`CreateStudyModal`/`PrototypeViewer`) or documented an abandoned approach. `App.tsx`'s `View` type shrank to `'dashboard' | 'configure-study' | 'study-results'` accordingly.
+
+Still present from before that: **`src/components/EditStudyModal.tsx` and `src/components/CreateStudyPlaceholder.tsx`** remain unimported dead code, not yet cleaned up.
 
 ## Known duplication (not dead, but drifted from a single source of truth)
 
-- **Three separate "Copy Participant Link" UIs**: `Dashboard.tsx` (in the study details modal), `StudyConfiguration.tsx` (in the prototype section), and the dead one in `StudyDesignPage.tsx`.
-- **Three separate `getEmbedUrl`-style functions**: `Dashboard.tsx` (inline), `StudyConfiguration.tsx` (inline, with its own `nodeId` param, doesn't import `lib/figma.ts`), and `src/lib/figma.ts` (the original shared helper, now only consumed by the dead `StudyDesignPage.tsx`). If touching Figma-URL-building logic, check all three, not just `lib/figma.ts`.
+- **Two separate "Copy Participant Link" UIs**: `Dashboard.tsx` (in the study details modal) and `StudyConfiguration.tsx` (in the prototype section) — each with its own copy-to-clipboard implementation.
+- **Two separate `getEmbedUrl`-style functions**: `Dashboard.tsx` (inline) and `StudyConfiguration.tsx` (inline, with its own `nodeId` param). No shared helper anymore since `lib/figma.ts` was deleted — if touching Figma-URL-building logic, check both.
 
 ## Conventions observed so far
 
@@ -47,5 +44,6 @@ Grew a lot this round — check before building on any of these:
 
 ## Open from professor feedback (see PRD.md for the full spec)
 
-- Hypothesis Validation Loop (two-pass biased/unbiased + manual closing) — **now implemented**, see `lib/analysis.ts` above. Worth double-checking the "closing"/locking half (marking a hypothesis resolved so it stops resurfacing) actually exists in `analysis.ts`/`db.ts`, since the audit that produced this note confirmed the two-pass generation but didn't specifically verify the close/lock UI.
+- Hypothesis Validation Loop (two-pass biased/unbiased + manual closing) — **implemented and verified live**, both the generation (`lib/analysis.ts`) and the closing/locking UI (`StudyResultsPage.tsx`, `status: 'closed'` in `db.ts`).
 - BYOK — implemented (`lib/config.ts` + `SettingsModal.tsx`), consent checkbox and persistent header indicator both present.
+- Initial hypotheses capture — implemented (`StudyConfiguration.tsx`'s "Your Assumptions" section, see above), was previously a data-model-only gap with no UI.

@@ -14,7 +14,10 @@ export interface AiProviderConfig {
 export const DEFAULT_AI_CONFIG: AiProviderConfig = {
   providerType: 'ollama',
   baseUrl: 'http://localhost:11434',
-  modelName: 'llama3',
+  // Small model on purpose: keeps the default usable on modest hardware
+  // (e.g. 8GB RAM machines, where an 8B model like llama3 swaps heavily).
+  // Users with more headroom can pick a larger model in Settings.
+  modelName: 'llama3.2:1b',
 };
 
 const CONFIG_STORAGE_KEY = 'tracekit_ai_config';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, ClipboardList, Smartphone, HelpCircle, Loader2, Save, AlertCircle, Trash2, ExternalLink, AlertTriangle, Plus, X, ChevronUp, ChevronDown, Edit2, Monitor, Tablet, Link2, Check } from 'lucide-react';
+import { ArrowLeft, ClipboardList, Smartphone, HelpCircle, Loader2, Save, AlertCircle, Trash2, ExternalLink, AlertTriangle, Plus, X, ChevronUp, ChevronDown, Edit2, Monitor, Tablet, Link2, Check, Lightbulb } from 'lucide-react';
 import { db, type Study, type SurveyQuestion, type StudyTask, type ClickedElement, type RecordedPath } from '../db/db';
 import { PrototypeViewer } from './PrototypeViewer';
 import { importPrototype } from '../lib/figmaApi';
@@ -85,6 +85,9 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
   // Figma config state
   const [figmaUrlInput, setFigmaUrlInput] = useState('');
   const [isSavingFigma, setIsSavingFigma] = useState(false);
+  const [initialHypothesesInput, setInitialHypothesesInput] = useState('');
+  const [isSavingHypotheses, setIsSavingHypotheses] = useState(false);
+  const [hypothesesFeedback, setHypothesesFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importFeedback, setImportFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [iframeLoading, setIframeLoading] = useState(false);
@@ -137,9 +140,11 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
             const seededData = await db.updateStudy(studyId, updates);
             setStudy(seededData);
             setFigmaUrlInput(seededData.figmaUrl || '');
+            setInitialHypothesesInput(seededData.initialHypotheses || '');
           } else {
             setStudy(data);
             setFigmaUrlInput(data.figmaUrl || '');
+            setInitialHypothesesInput(data.initialHypotheses || '');
           }
         }
       } catch (e) {
@@ -716,6 +721,21 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
     }
   };
 
+  // Handle Save Initial Hypotheses
+  const handleSaveInitialHypotheses = async () => {
+    setHypothesesFeedback(null);
+    setIsSavingHypotheses(true);
+    try {
+      const updated = await db.updateStudy(studyId, { initialHypotheses: initialHypothesesInput });
+      setStudy(updated);
+      setHypothesesFeedback({ type: 'success', text: 'Initial hypotheses saved.' });
+    } catch (err) {
+      setHypothesesFeedback({ type: 'error', text: 'Failed to save initial hypotheses.' });
+    } finally {
+      setIsSavingHypotheses(false);
+    }
+  };
+
   // Handle Import Figma Prototype
   const handleImportPrototype = async () => {
     if (!study?.figmaUrl) return;
@@ -915,8 +935,70 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
       <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
         {activeStep === 'general' && (
           <>
+            {/* Section: Initial Hypotheses */}
+            <section
+              aria-labelledby="initial-hypotheses-heading"
+              style={{
+                backgroundColor: 'var(--card-bg)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '24px',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                <div style={{
+                  backgroundColor: 'var(--primary-light)',
+                  color: 'var(--primary)',
+                  borderRadius: 'var(--radius-sm)',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Lightbulb size={18} />
+                </div>
+                <div>
+                  <h2 id="initial-hypotheses-heading" style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+                    Your Assumptions (Optional)
+                  </h2>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px', lineHeight: '1.4' }}>
+                    What do you already believe about this design, before seeing any data? One per line. The AI Hypothesis Validation Loop checks each of these against the collected sessions before discovering new ones, so you can confirm or refute what you already suspected instead of starting from zero.
+                  </p>
+                </div>
+              </div>
+
+              <textarea
+                id="initial-hypotheses-input"
+                className="form-control"
+                placeholder={'e.g. Users will struggle to find the checkout button on the Home screen.\nParticipants will use the search icon instead of browsing categories.'}
+                value={initialHypothesesInput}
+                onChange={(e) => { setInitialHypothesesInput(e.target.value); if (hypothesesFeedback) setHypothesesFeedback(null); }}
+                disabled={isSavingHypotheses}
+                style={{ minHeight: '100px' }}
+              />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSaveInitialHypotheses}
+                  disabled={isSavingHypotheses}
+                >
+                  <Save size={16} /> {isSavingHypotheses ? 'Saving...' : 'Save Assumptions'}
+                </button>
+                {hypothesesFeedback && (
+                  <span style={{ fontSize: '13px', color: hypothesesFeedback.type === 'success' ? 'var(--success)' : 'var(--error)' }}>
+                    {hypothesesFeedback.text}
+                  </span>
+                )}
+              </div>
+            </section>
+
             {/* Section 1: Pre-Study Questions */}
-        <section 
+        <section
           aria-labelledby="pre-study-heading"
           style={{
             backgroundColor: 'var(--card-bg)',
