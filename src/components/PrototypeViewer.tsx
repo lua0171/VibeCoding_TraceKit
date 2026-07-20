@@ -56,11 +56,22 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
     triggerHintsFlash();
   };
 
-  const handleHotspotActivate = (e: React.MouseEvent | React.KeyboardEvent, hs: { x: number; y: number; name: string; targetFrameId: string }) => {
+  const handleHotspotActivate = (e: React.MouseEvent, hs: { x: number; y: number; width: number; height: number; name: string; targetFrameId: string }) => {
     e.stopPropagation();
     if (readOnly) return;
     if (onClick) {
-      onClick(hs.x, hs.y, hs.name, true);
+      // e.detail === 0 for a keyboard-synthesized click (Enter/Space on the
+      // button) -- there's no real pointer position, so use the hotspot's
+      // center. A real mouse click reports its actual position, which is
+      // what the heatmap needs to reflect where within the element people clicked.
+      let clickX = hs.x + hs.width / 2;
+      let clickY = hs.y + hs.height / 2;
+      if (e.detail !== 0 && containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        clickX = (e.clientX - rect.left) / rect.width;
+        clickY = (e.clientY - rect.top) / rect.height;
+      }
+      onClick(clickX, clickY, hs.name, true);
     }
     if (onNavigate) {
       onNavigate(hs.targetFrameId);

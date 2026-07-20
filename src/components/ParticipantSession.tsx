@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, ShieldCheck, ClipboardList } from 'lucide-react';
-import { db, type Study, type SurveyQuestion, type SurveyResponse } from '../db/db';
+import { db, type Study, type SurveyQuestion, type SurveyResponse, type StudyTask } from '../db/db';
 import { PrototypeViewer } from './PrototypeViewer';
 
 interface ParticipantSessionProps {
@@ -100,6 +100,16 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
 
   const activeTask = study?.tasks && study.tasks.length > 0 ? study.tasks[activeTaskIndex] : null;
 
+  // Resolve which frame a session should open on: an explicit per-task
+  // override wins, otherwise fall back to the imported prototype's own
+  // designated starting point. 'Home View' only exists as a real frame id
+  // in the built-in mock prototype (no import), so it's the last resort.
+  const resolveStartFrame = (task: StudyTask | null): string => {
+    if (task?.startingFrameNodeId) return task.startingFrameNodeId;
+    const importedStart = study?.importedPrototype?.flowStartingPoints?.[0]?.nodeId;
+    return importedStart || 'Home View';
+  };
+
   const handleNavigate = (toFrameId: string) => {
     if (sessionId) {
       db.appendEvent(sessionId, {
@@ -139,7 +149,7 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
       setStage('pre-survey');
     } else {
       const firstTask = study?.tasks && study.tasks.length > 0 ? study.tasks[0] : null;
-      const startFrame = firstTask?.startingFrameNodeId || 'Home View';
+      const startFrame = resolveStartFrame(firstTask);
       setCurrentFrameId(startFrame);
       previousNodeId.current = startFrame;
       setStage('active');
@@ -149,7 +159,7 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
   const handlePreSurveySubmit = (answers: SurveyResponse[]) => {
     setPreSurveyAnswers(answers);
     const firstTask = study?.tasks && study.tasks.length > 0 ? study.tasks[0] : null;
-    const startFrame = firstTask?.startingFrameNodeId || 'Home View';
+    const startFrame = resolveStartFrame(firstTask);
     setCurrentFrameId(startFrame);
     previousNodeId.current = startFrame;
     setStage('active');
