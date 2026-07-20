@@ -208,6 +208,22 @@ h1, h2, h3, h4 {
   outline-offset: 2px;
 }
 
+.survey-option-btn:hover {
+  border-color: var(--primary);
+  background-color: rgba(59, 130, 246, 0.06);
+}
+
+/* Heatmap zoom toolbar and participant filter toggle (Heatmap.tsx) */
+.heatmap-toolbar-btn:hover:not(:disabled) {
+  background-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+.heatmap-participant-toggle:hover {
+  color: var(--primary-hover) !important;
+  text-decoration: underline;
+}
+
 .btn-primary {
   background-color: var(--primary);
   color: var(--text-inverse);

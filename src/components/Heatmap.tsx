@@ -291,6 +291,7 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl, importedProtot
         }}>
           <button
             type="button"
+            className="heatmap-toolbar-btn"
             onClick={zoomOut}
             disabled={zoom <= MIN_ZOOM}
             style={{
@@ -313,6 +314,7 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl, importedProtot
           </button>
           <button
             type="button"
+            className="heatmap-toolbar-btn"
             onClick={resetZoom}
             style={{
               minWidth: '48px',
@@ -331,6 +333,7 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl, importedProtot
           </button>
           <button
             type="button"
+            className="heatmap-toolbar-btn"
             onClick={zoomIn}
             disabled={zoom >= MAX_ZOOM}
             style={{
@@ -400,6 +403,8 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl, importedProtot
                 ref={imageRef}
                 src={screen.imageUrl}
                 alt={`Screenshot of ${screen.name}`}
+                width={screen.width}
+                height={screen.height}
                 onLoad={() => setImageLoaded(true)}
                 style={{ display: 'block', maxWidth: 'none', userSelect: 'none' }}
                 draggable={false}
@@ -463,6 +468,7 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl, importedProtot
             </span>
             <button
               type="button"
+              className="heatmap-participant-toggle"
               onClick={toggleAll}
               style={{
                 fontSize: '12px',

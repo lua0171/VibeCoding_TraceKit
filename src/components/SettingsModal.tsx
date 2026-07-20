@@ -37,11 +37,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const canSave = !isExternal || (isExternal && hasConsented && config.baseUrl && config.modelName);
 
   return (
-    <div className="details-overlay" style={{ zIndex: 100 }} role="dialog" aria-modal="true" onClick={onClose}>
+    <div className="details-overlay" style={{ zIndex: 100 }} role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" onClick={onClose}>
       <div className="details-modal" style={{ maxWidth: '500px', padding: '24px' }} onClick={e => e.stopPropagation()}>
-        
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2 id="settings-modal-title" style={{ fontSize: '18px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
             System & Provider Settings
           </h2>
           <button className="modal-close" onClick={onClose} aria-label="Close settings">
@@ -49,7 +49,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '70vh', overflowY: 'auto', paddingRight: '4px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '70vh', overflowY: 'auto', overscrollBehavior: 'contain', paddingRight: '4px' }}>
           
           <div style={{ fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>
             AI Provider
@@ -113,11 +113,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           {/* Configuration Inputs */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label htmlFor="settings-base-url" className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Server size={14} /> Base URL
               </label>
               <input
-                type="text"
+                id="settings-base-url"
+                name="ai-base-url"
+                type="url"
                 className="form-control"
                 value={config.baseUrl}
                 onChange={(e) => setConfig({ ...config, baseUrl: e.target.value })}
@@ -126,10 +128,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
 
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label htmlFor="settings-model-name" className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Database size={14} /> Model Name
               </label>
               <input
+                id="settings-model-name"
+                name="ai-model-name"
                 type="text"
                 className="form-control"
                 value={config.modelName}
@@ -140,10 +144,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
             {isExternal && (
               <div className="form-group">
-                <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <label htmlFor="settings-api-key" className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Key size={14} /> API Key (Optional for some endpoints)
                 </label>
                 <input
+                  id="settings-api-key"
+                  name="ai-api-key"
                   type="password"
                   className="form-control"
                   value={config.apiKey || ''}
@@ -189,10 +195,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           {/* Figma API configuration */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label htmlFor="settings-figma-token" className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Key size={14} /> Figma Personal Access Token
               </label>
               <input
+                id="settings-figma-token"
+                name="figma-token"
                 type="password"
                 className="form-control"
                 value={figmaToken}

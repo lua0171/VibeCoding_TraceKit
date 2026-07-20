@@ -184,7 +184,7 @@ export const ParticipantSession: React.FC<ParticipantSessionProps> = ({ studyId 
     return (
       <CenteredMessage>
         <Loader2 size={32} className="spinner" style={{ color: 'var(--primary)', animation: 'spin 1s linear infinite' }} />
-        <span style={{ color: 'var(--text-muted)' }}>Loading study...</span>
+        <span style={{ color: 'var(--text-muted)' }}>Loading study…</span>
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </CenteredMessage>
     );
@@ -369,9 +369,12 @@ interface SurveyFormProps {
 const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onSubmit }) => {
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const unanswered = questions.filter(q => {
       const ans = answers[q.id];
       if (ans === undefined || ans === '') return true;
@@ -385,6 +388,7 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onS
     }
 
     setValidationError(null);
+    setIsSubmitting(true);
     const responses: SurveyResponse[] = questions.map(q => ({
       questionId: q.id,
       questionText: q.text,
@@ -433,16 +437,18 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onS
                 borderBottom: idx < questions.length - 1 ? '1px solid var(--border)' : 'none'
               }}
             >
-              <label style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>
+              <label htmlFor={`question-${q.id}`} style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>
                 {idx + 1}. {q.text}
               </label>
 
               {q.type === 'short_text' && (
                 <input
+                  id={`question-${q.id}`}
                   type="text"
+                  className="form-control"
                   value={(answers[q.id] as string) || ''}
                   onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                  placeholder="Type your response here..."
+                  placeholder="Type your response here…"
                   style={{
                     padding: '12px 14px',
                     borderRadius: 'var(--radius-sm)',
@@ -458,9 +464,11 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onS
 
               {q.type === 'long_text' && (
                 <textarea
+                  id={`question-${q.id}`}
+                  className="form-control"
                   value={(answers[q.id] as string) || ''}
                   onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                  placeholder="Type your response here..."
+                  placeholder="Type your response here…"
                   rows={4}
                   style={{
                     padding: '12px 14px',
@@ -478,7 +486,9 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onS
 
               {q.type === 'number' && (
                 <input
+                  id={`question-${q.id}`}
                   type="number"
+                  className="form-control"
                   value={(answers[q.id] as string) || ''}
                   onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
                   placeholder="e.g. 25"
@@ -516,6 +526,8 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onS
 
               {q.type === 'dropdown' && (
                 <select
+                  id={`question-${q.id}`}
+                  className="form-control"
                   value={(answers[q.id] as string) || ''}
                   onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
                   style={{
@@ -654,7 +666,7 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onS
           ))}
 
           {validationError && (
-            <div style={{ 
+            <div role="alert" aria-live="polite" style={{
               backgroundColor: 'rgba(239, 68, 68, 0.08)',
               border: '1px solid var(--error)',
               color: 'var(--error)',
@@ -667,13 +679,14 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onS
             </div>
           )}
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn btn-primary"
-            style={{ 
-              width: '100%', 
-              padding: '14px', 
-              fontSize: '15px', 
+            disabled={isSubmitting}
+            style={{
+              width: '100%',
+              padding: '14px',
+              fontSize: '15px',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
@@ -681,7 +694,7 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ title, subtitle, questions, onS
               gap: '8px'
             }}
           >
-            Submit Questionnaire ➔
+            {isSubmitting ? 'Submitting…' : 'Submit Questionnaire ➔'}
           </button>
         </form>
       </div>

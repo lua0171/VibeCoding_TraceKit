@@ -37,6 +37,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [isEditingMin, setIsEditingMin] = useState(false);
   const [tempMin, setTempMin] = useState(10);
   const [detailsLinkCopied, setDetailsLinkCopied] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Load studies on mount or when refreshTrigger updates
   const loadStudies = async () => {
@@ -195,16 +196,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <input
             type="text"
             placeholder="Search usability studies..."
+            aria-label="Search usability studies"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             style={{
               border: 'none',
-              outline: 'none',
               padding: '10px 0',
               width: '100%',
               fontSize: '14px',
               background: 'transparent',
               color: 'var(--text)',
+              boxShadow: isSearchFocused ? '0 0 0 3px rgba(59, 130, 246, 0.15)' : 'none',
             }}
           />
         </div>
@@ -254,7 +258,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
               onClick={() => setSelectedStudy(study)}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter') setSelectedStudy(study); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setSelectedStudy(study);
+                } else if (e.key === ' ' || e.key === 'Space') {
+                  e.preventDefault();
+                  setSelectedStudy(study);
+                }
+              }}
             >
               <div>
                 <div className="study-card-header" style={{ marginBottom: '4px' }}>
@@ -317,16 +328,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       style={{ fontSize: '18px', padding: '6px 12px' }}
                       autoFocus
                     />
-                    <button className="btn btn-primary btn-icon-only" onClick={handleSaveTitleInline} title="Save Title">
+                    <button className="btn btn-primary btn-icon-only" onClick={handleSaveTitleInline} title="Save Title" aria-label="Save Title">
                       <Check size={16} />
                     </button>
-                    <button 
-                      className="btn btn-secondary btn-icon-only" 
-                      onClick={() => { 
-                        setIsEditingTitle(false); 
-                        setTempTitle(selectedStudy.title); 
-                      }} 
+                    <button
+                      className="btn btn-secondary btn-icon-only"
+                      onClick={() => {
+                        setIsEditingTitle(false);
+                        setTempTitle(selectedStudy.title);
+                      }}
                       title="Cancel"
+                      aria-label="Cancel edit title"
                     >
                       <X size={16} />
                     </button>
@@ -334,13 +346,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 ) : (
                   <h2 id="detail-title" className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     {selectedStudy.title}
-                    <button 
+                    <button
                       className="btn-inline-edit"
-                      onClick={() => { 
-                        setIsEditingTitle(true); 
-                        setTempTitle(selectedStudy.title); 
+                      onClick={() => {
+                        setIsEditingTitle(true);
+                        setTempTitle(selectedStudy.title);
                       }}
                       title="Edit Title"
+                      aria-label="Edit Title"
                     >
                       <Edit2 size={16} />
                     </button>
@@ -364,17 +377,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     autoFocus
                   />
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                    <button 
-                      className="btn btn-secondary btn-icon-only" 
-                      onClick={() => { 
-                        setIsEditingDesc(false); 
-                        setTempDesc(selectedStudy.description); 
-                      }} 
+                    <button
+                      className="btn btn-secondary btn-icon-only"
+                      onClick={() => {
+                        setIsEditingDesc(false);
+                        setTempDesc(selectedStudy.description);
+                      }}
                       title="Cancel"
+                      aria-label="Cancel edit description"
                     >
                       <X size={16} />
                     </button>
-                    <button className="btn btn-primary btn-icon-only" onClick={handleSaveDescInline} title="Save Description">
+                    <button className="btn btn-primary btn-icon-only" onClick={handleSaveDescInline} title="Save Description" aria-label="Save Description">
                       <Check size={16} />
                     </button>
                   </div>
@@ -382,13 +396,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
               ) : (
                 <div className="details-description" style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                   <span style={{ flex: 1 }}>{selectedStudy.description}</span>
-                  <button 
+                  <button
                     className="btn-inline-edit"
-                    onClick={() => { 
-                      setIsEditingDesc(true); 
-                      setTempDesc(selectedStudy.description); 
+                    onClick={() => {
+                      setIsEditingDesc(true);
+                      setTempDesc(selectedStudy.description);
                     }}
                     title="Edit Description"
+                    aria-label="Edit Description"
                     style={{ marginTop: '4px' }}
                   >
                     <Edit2 size={14} />
@@ -435,7 +450,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }}
                     style={{ fontSize: '12px', height: '34px', whiteSpace: 'nowrap', gap: '6px', display: 'flex', alignItems: 'center' }}
                   >
-                    {detailsLinkCopied ? 'Copied! ✓' : 'Copy Link'}
+                    <span aria-live="polite">{detailsLinkCopied ? 'Copied! ✓' : 'Copy Link'}</span>
                   </button>
                 </div>
               </div>
@@ -499,21 +514,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <Plus size={10} />
                           </button>
                           
-                          <button className="btn btn-primary btn-icon-only" style={{ padding: '2px', borderRadius: '4px', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={handleSaveMinInline} title="Save">
+                          <button className="btn btn-primary btn-icon-only" style={{ padding: '2px', borderRadius: '4px', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={handleSaveMinInline} title="Save" aria-label="Save target count">
                             <Check size={12} />
                           </button>
-                          <button className="btn btn-secondary btn-icon-only" style={{ padding: '2px', borderRadius: '4px', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsEditingMin(false)} title="Cancel">
+                          <button className="btn btn-secondary btn-icon-only" style={{ padding: '2px', borderRadius: '4px', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsEditingMin(false)} title="Cancel" aria-label="Cancel edit target count">
                             <X size={12} />
                           </button>
                         </div>
                       ) : (
                         <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
                           {selectedStudy.minParticipants || 10}
-                          <button 
-                            className="btn-inline-edit" 
-                            style={{ padding: '2px' }} 
+                          <button
+                            className="btn-inline-edit"
+                            style={{ padding: '2px' }}
                             onClick={() => { setIsEditingMin(true); setTempMin(selectedStudy.minParticipants || 10); }}
                             title="Edit Target Count"
+                            aria-label="Edit Target Count"
                           >
                             <Edit2 size={11} />
                           </button>
@@ -544,12 +560,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
               {/* Study Design and Results frames */}
               <div className="study-frames-grid">
-                <div 
+                <div
                   className="study-frame-card"
                   onClick={() => {
                     const studyId = selectedStudy.id;
                     setSelectedStudy(null);
                     onNavigateToStudyDesign(studyId);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const studyId = selectedStudy.id;
+                      setSelectedStudy(null);
+                      onNavigateToStudyDesign(studyId);
+                    } else if (e.key === ' ' || e.key === 'Space') {
+                      e.preventDefault();
+                      const studyId = selectedStudy.id;
+                      setSelectedStudy(null);
+                      onNavigateToStudyDesign(studyId);
+                    }
                   }}
                 >
                   <div className="study-frame-preview">
@@ -580,12 +610,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                 </div>
 
-                <div 
+                <div
                   className="study-frame-card"
                   onClick={() => {
                     const studyId = selectedStudy.id;
                     setSelectedStudy(null);
                     onNavigateToStudyResults(studyId);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const studyId = selectedStudy.id;
+                      setSelectedStudy(null);
+                      onNavigateToStudyResults(studyId);
+                    } else if (e.key === ' ' || e.key === 'Space') {
+                      e.preventDefault();
+                      const studyId = selectedStudy.id;
+                      setSelectedStudy(null);
+                      onNavigateToStudyResults(studyId);
+                    }
                   }}
                 >
                   <div className="study-frame-preview">

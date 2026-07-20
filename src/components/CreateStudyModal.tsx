@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, Info, Loader2, Plus, Minus } from 'lucide-react';
 
 interface CreateStudyModalProps {
@@ -17,6 +17,8 @@ export const CreateStudyModal: React.FC<CreateStudyModalProps> = ({
   const [minParticipants, setMinParticipants] = useState(10);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const participantsInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
@@ -26,11 +28,13 @@ export const CreateStudyModal: React.FC<CreateStudyModalProps> = ({
 
     if (!title.trim()) {
       setError('Study name is required.');
+      titleInputRef.current?.focus();
       return;
     }
 
     if (minParticipants < 1) {
       setError('Please specify at least 1 target participant.');
+      participantsInputRef.current?.focus();
       return;
     }
 
@@ -49,7 +53,7 @@ export const CreateStudyModal: React.FC<CreateStudyModalProps> = ({
   };
 
   return (
-    <div className="details-overlay" role="dialog" aria-modal="true" aria-labelledby="create-modal-title" onClick={onCancel}>
+    <div className="details-overlay" role="dialog" aria-modal="true" aria-labelledby="create-modal-title" onClick={isSubmitting ? undefined : onCancel}>
       <div className="details-modal" style={{ maxWidth: '520px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
         
         <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
@@ -65,7 +69,7 @@ export const CreateStudyModal: React.FC<CreateStudyModalProps> = ({
           <div className="modal-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
             {error && (
-              <div style={{
+              <div role="alert" aria-live="polite" style={{
                 color: 'var(--error)',
                 backgroundColor: 'var(--error-bg)',
                 border: '1px solid rgba(239, 68, 68, 0.15)',
@@ -82,6 +86,7 @@ export const CreateStudyModal: React.FC<CreateStudyModalProps> = ({
                 Study Name <span style={{ color: 'var(--error)' }}>*</span>
               </label>
               <input
+                ref={titleInputRef}
                 id="study-title-input"
                 type="text"
                 className="form-control"
@@ -91,6 +96,7 @@ export const CreateStudyModal: React.FC<CreateStudyModalProps> = ({
                 required
                 disabled={isSubmitting}
                 autoFocus
+                autoComplete="off"
                 style={{ width: '100%' }}
               />
             </div>
@@ -102,10 +108,11 @@ export const CreateStudyModal: React.FC<CreateStudyModalProps> = ({
               <textarea
                 id="study-desc-input"
                 className="form-control"
-                placeholder="Briefly describe the study goals, tasks, and target user audience..."
+                placeholder="Briefly describe the study goals, tasks, and target user audience…"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 disabled={isSubmitting}
+                autoComplete="off"
                 style={{ width: '100%', minHeight: '80px', resize: 'vertical' }}
               />
             </div>
@@ -127,6 +134,7 @@ export const CreateStudyModal: React.FC<CreateStudyModalProps> = ({
                 </button>
                 
                 <input
+                  ref={participantsInputRef}
                   id="study-participants-input"
                   type="number"
                   className="form-control"
@@ -135,6 +143,7 @@ export const CreateStudyModal: React.FC<CreateStudyModalProps> = ({
                   min="1"
                   required
                   disabled={isSubmitting}
+                  autoComplete="off"
                   style={{ width: '64px', textAlign: 'center', height: '36px' }}
                 />
                 

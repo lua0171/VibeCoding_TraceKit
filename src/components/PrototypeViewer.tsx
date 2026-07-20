@@ -118,7 +118,8 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        cursor: readOnly ? 'default' : 'pointer'
+        cursor: readOnly ? 'default' : 'pointer',
+        touchAction: 'manipulation'
       }}
     >
       {isImported && activeImportedFrame ? (
@@ -136,6 +137,8 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
           <img
             src={activeImportedFrame.imageUrl}
             alt={activeImportedFrame.name}
+            width={activeImportedFrame.width}
+            height={activeImportedFrame.height}
             style={{ width: '100%', height: '100%', display: 'block', pointerEvents: 'none', objectFit: 'contain' }}
           />
 

@@ -123,7 +123,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
               let defaultTasks: StudyTask[] = [];
               if (studyId === '1') {
                 defaultTasks = [
-                  { id: 'task_1', title: 'Add red running shoes to cart', instruction: 'Find the shoes section, locate the red running shoes, select size 9, and click "Add to Cart".' },
+                  { id: 'task_1', title: 'Add red running shoes to cart', instruction: 'Find the shoes section, locate the red running shoes, select size 9, and click “Add to Cart”.' },
                   { id: 'task_2', title: 'Check out shopping cart', instruction: 'Open your shopping cart, fill out shipping details, select standard shipping, and place the order.' }
                 ];
               } else if (studyId === '2') {
@@ -132,8 +132,8 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                 ];
               } else {
                 defaultTasks = [
-                  { id: 'task_4', title: 'Search for anxiety exercise', instruction: 'Open search, search for "anxiety relief meditation", click the exercise, and run a 5-minute breathing session.' },
-                  { id: 'task_5', title: 'Log a mood event', instruction: 'Click the "+" button in navigation, choose mood logging, select "Calm", and click save.' }
+                  { id: 'task_4', title: 'Search for anxiety exercise', instruction: 'Open search, search for “anxiety relief meditation”, click the exercise, and run a 5-minute breathing session.' },
+                  { id: 'task_5', title: 'Log a mood event', instruction: 'Click the “+” button in navigation, choose mood logging, select “Calm”, and click save.' }
                 ];
               }
               updates.tasks = defaultTasks;
@@ -271,6 +271,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
   const handleDeleteQuestion = async (id: string, scope: 'pre' | 'post') => {
     if (!study) return;
+    // TODO: replace with DeleteConfirmationModal pattern (see DeleteConfirmationModal.tsx) for consistency
     if (!window.confirm('Are you sure you want to delete this question?')) return;
     
     const currentQuestions = scope === 'pre'
@@ -506,6 +507,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
   const handleDeleteTask = async (id: string) => {
     if (!study) return;
+    // TODO: replace with DeleteConfirmationModal pattern (see DeleteConfirmationModal.tsx) for consistency
     if (!window.confirm('Are you sure you want to delete this task?')) return;
 
     const updatedTasks = (study.tasks || []).filter(t => t.id !== id);
@@ -597,7 +599,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
       clickedElements: recordingSteps,
       orderOfInteractions: [
         `Started at ${recordingFrames[0]}`,
-        ...recordingSteps.map(c => `Clicked "${c.targetName}" on ${c.frameName}`),
+        ...recordingSteps.map(c => `Clicked “${c.targetName}” on ${c.frameName}`),
         `Finished flow`
       ],
       completedStatus: true
@@ -625,6 +627,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
   const handleDeleteExpectedPath = async (taskId: string) => {
     if (!study) return;
+    // TODO: replace with DeleteConfirmationModal pattern (see DeleteConfirmationModal.tsx) for consistency
     if (!window.confirm('Are you sure you want to clear the expected solution for this task?')) return;
 
     const updatedTasks = (study.tasks || []).map(t => {
@@ -651,14 +654,14 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
     setFigmaFeedback(null);
 
     if (!figmaUrlInput.trim()) {
-      setFigmaFeedback({ type: 'error', text: 'URL cannot be empty. Click "Remove" if you want to clear the prototype.' });
+      setFigmaFeedback({ type: 'error', text: 'URL cannot be empty. Click “Remove” if you want to clear the prototype.' });
       return;
     }
 
     if (!isValidFigmaUrl(figmaUrlInput)) {
       setFigmaFeedback({ 
         type: 'error', 
-        text: 'Please enter a valid Figma URL (e.g., figma.com/proto/... or figma.com/file/...)' 
+        text: 'Please enter a valid Figma URL (e.g., figma.com/proto/… or figma.com/file/…)'
       });
       return;
     }
@@ -678,6 +681,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
   // Handle Clear Figma Link
   const handleClearFigma = async () => {
+    // TODO: replace with DeleteConfirmationModal pattern (see DeleteConfirmationModal.tsx) for consistency
     if (!window.confirm('Are you sure you want to remove the Figma prototype link from this study?')) return;
     
     setFigmaFeedback(null);
@@ -755,7 +759,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '16px' }}>
         <Loader2 size={32} className="spinner" style={{ color: 'var(--primary)', animation: 'spin 1s linear infinite' }} />
-        <span style={{ color: 'var(--text-muted)' }}>Loading study configuration...</span>
+        <span style={{ color: 'var(--text-muted)' }}>Loading study configuration…</span>
       </div>
     );
   }
@@ -805,8 +809,10 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
         paddingBottom: '16px'
       }}>
         {/* Step 1 */}
-        <div 
+        <button
+          type="button"
           onClick={() => setActiveStep('general')}
+          aria-current={activeStep === 'general' ? 'step' : undefined}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -815,7 +821,10 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
             padding: '8px 12px',
             borderRadius: 'var(--radius-sm)',
             backgroundColor: activeStep === 'general' ? 'var(--primary-light)' : 'transparent',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            border: 'none',
+            font: 'inherit',
+            textAlign: 'left'
           }}
         >
           <div style={{
@@ -839,14 +848,16 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
           }}>
             Surveys & Prototype Link
           </span>
-        </div>
+        </button>
 
         {/* Arrow Connector */}
         <div style={{ color: 'var(--border)', fontSize: '18px' }}>➔</div>
 
         {/* Step 2 */}
-        <div 
+        <button
+          type="button"
           onClick={() => setActiveStep('tasks')}
+          aria-current={activeStep === 'tasks' ? 'step' : undefined}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -855,7 +866,10 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
             padding: '8px 12px',
             borderRadius: 'var(--radius-sm)',
             backgroundColor: activeStep === 'tasks' ? 'var(--primary-light)' : 'transparent',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            border: 'none',
+            font: 'inherit',
+            textAlign: 'left'
           }}
         >
           <div style={{
@@ -879,7 +893,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
           }}>
             Task Configuration & Recording
           </span>
-        </div>
+        </button>
       </div>
 
       {/* Warning Alert Banner (only shown in edit mode) */}
@@ -945,6 +959,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
               <textarea
                 id="initial-hypotheses-input"
+                aria-labelledby="initial-hypotheses-heading"
                 className="form-control"
                 placeholder={'e.g. Users will struggle to find the checkout button on the Home screen.\nParticipants will use the search icon instead of browsing categories.'}
                 value={initialHypothesesInput}
@@ -960,10 +975,10 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                   onClick={handleSaveInitialHypotheses}
                   disabled={isSavingHypotheses}
                 >
-                  <Save size={16} /> {isSavingHypotheses ? 'Saving...' : 'Save Assumptions'}
+                  <Save size={16} /> {isSavingHypotheses ? 'Saving…' : 'Save Assumptions'}
                 </button>
                 {hypothesesFeedback && (
-                  <span style={{ fontSize: '13px', color: hypothesesFeedback.type === 'success' ? 'var(--success)' : 'var(--error)' }}>
+                  <span role="status" aria-live="polite" style={{ fontSize: '13px', color: hypothesesFeedback.type === 'success' ? 'var(--success)' : 'var(--error)' }}>
                     {hypothesesFeedback.text}
                   </span>
                 )}
@@ -1080,6 +1095,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                             alignItems: 'center'
                           }}
                           title="Move Question Up"
+                          aria-label="Move Question Up"
                         >
                           <ChevronUp size={16} />
                         </button>
@@ -1097,6 +1113,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                             alignItems: 'center'
                           }}
                           title="Move Question Down"
+                          aria-label="Move Question Down"
                         >
                           <ChevronDown size={16} />
                         </button>
@@ -1114,6 +1131,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                             marginLeft: '4px'
                           }}
                           title="Edit Question"
+                          aria-label="Edit Question"
                         >
                           <Edit2 size={14} />
                         </button>
@@ -1130,6 +1148,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                             alignItems: 'center'
                           }}
                           title="Delete Question"
+                          aria-label="Delete Question"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -1182,7 +1201,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                 No questions configured
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '380px', margin: '0 auto', lineHeight: '1.4' }}>
-                Click "Add Question" to create background or screening questions for your participants.
+                Click “Add Question” to create background or screening questions for your participants.
               </p>
             </div>
           )}
@@ -1242,10 +1261,14 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
             <div style={{ marginTop: '16px' }}>
               <form onSubmit={handleSaveFigma} style={{ display: 'flex', gap: '12px', width: '100%', flexWrap: 'wrap', alignItems: 'flex-start' }}>
                 <div style={{ flex: 1, minWidth: '280px' }}>
+                  <label htmlFor="figma-url-input" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                    Figma prototype URL
+                  </label>
                   <input
-                    type="text"
+                    id="figma-url-input"
+                    type="url"
                     className="form-control"
-                    placeholder="Paste Figma prototype or file URL, e.g. https://www.figma.com/proto/..."
+                    placeholder="Paste Figma prototype or file URL, e.g. https://www.figma.com/proto/…"
                     value={figmaUrlInput}
                     onChange={(e) => { setFigmaUrlInput(e.target.value); if (figmaFeedback) setFigmaFeedback(null); }}
                     disabled={isSavingFigma}
@@ -1263,7 +1286,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
               </form>
 
               {figmaFeedback && (
-                <div style={{
+                <div role="status" aria-live="polite" style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
@@ -1356,7 +1379,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                   >
                     {isImporting ? (
                       <>
-                        <Loader2 size={12} className="spinner" /> Importing...
+                        <Loader2 size={12} className="spinner" /> Importing…
                       </>
                     ) : (
                       'Import Figma Prototype'
@@ -1365,7 +1388,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                 </div>
 
                 {importFeedback && (
-                  <div style={{
+                  <div role="status" aria-live="polite" style={{
                     fontSize: '12px',
                     padding: '8px 12px',
                     borderRadius: 'var(--radius-sm)',
@@ -1388,6 +1411,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                       type="button"
                       onClick={() => setViewport('desktop')}
                       className={`btn btn-secondary`}
+                      aria-pressed={viewport === 'desktop'}
                       style={{
                         padding: '4px 10px',
                         fontSize: '11px',
@@ -1406,6 +1430,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                       type="button"
                       onClick={() => setViewport('tablet')}
                       className={`btn btn-secondary`}
+                      aria-pressed={viewport === 'tablet'}
                       style={{
                         padding: '4px 10px',
                         fontSize: '11px',
@@ -1424,6 +1449,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                       type="button"
                       onClick={() => setViewport('mobile')}
                       className={`btn btn-secondary`}
+                      aria-pressed={viewport === 'mobile'}
                       style={{
                         padding: '4px 10px',
                         fontSize: '11px',
@@ -1488,7 +1514,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                     color: '#9ca3af'
                   }}>
                     <Loader2 size={20} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
-                    <span style={{ fontSize: '11px' }}>Connecting to Figma Embed Player...</span>
+                    <span style={{ fontSize: '11px' }}>Connecting to Figma Embed Player…</span>
                   </div>
                 )}
 
@@ -1638,6 +1664,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                               alignItems: 'center'
                             }}
                             title="Move Task Up"
+                            aria-label="Move Task Up"
                           >
                             <ChevronUp size={16} />
                           </button>
@@ -1655,6 +1682,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                               alignItems: 'center'
                             }}
                             title="Move Task Down"
+                            aria-label="Move Task Down"
                           >
                             <ChevronDown size={16} />
                           </button>
@@ -1672,6 +1700,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                               marginLeft: '4px'
                             }}
                             title="Edit Task"
+                            aria-label="Edit Task"
                           >
                             <Edit2 size={14} />
                           </button>
@@ -1688,6 +1717,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                               alignItems: 'center'
                             }}
                             title="Delete Task"
+                            aria-label="Delete Task"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -1770,7 +1800,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                                       borderRadius: '4px',
                                       border: '1px solid rgba(59, 130, 246, 0.1)'
                                     }}>
-                                      {cIdx + 1}. Click "{click.targetName}" on <code style={{ fontSize: '11px' }}>{click.frameName}</code> ({Math.round(click.timestamp / 100) / 10}s)
+                                      {cIdx + 1}. Click “{click.targetName}” on <code style={{ fontSize: '11px' }}>{click.frameName}</code> ({Math.round(click.timestamp / 100) / 10}s)
                                     </span>
                                   ))}
                                 </div>
@@ -1838,7 +1868,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                     No tasks configured
                   </h3>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '380px', margin: '0 auto', lineHeight: '1.4' }}>
-                    Click "Add Task" to create task instructions and configure their expected completion paths.
+                    Click “Add Task” to create task instructions and configure their expected completion paths.
                   </p>
                 </div>
               )}
@@ -1913,6 +1943,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                     type="radio"
                     checked={study.postSurveyQuestionsMode === 'none'}
                     onChange={() => handleSelectPostMode('none')}
+                    aria-label="No post-study questions"
                     style={{ cursor: 'pointer' }}
                   />
                   <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>No Post-Study Questions</span>
@@ -1942,6 +1973,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                     type="radio"
                     checked={study.postSurveyQuestionsMode === 'standardized'}
                     onChange={() => handleSelectPostMode('standardized')}
+                    aria-label="Standardized questionnaires"
                     style={{ cursor: 'pointer' }}
                   />
                   <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>Standardized Questionnaires</span>
@@ -1971,6 +2003,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                     type="radio"
                     checked={study.postSurveyQuestionsMode === 'custom'}
                     onChange={() => handleSelectPostMode('custom')}
+                    aria-label="Custom questions"
                     style={{ cursor: 'pointer' }}
                   />
                   <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>Custom Questions</span>
@@ -2021,6 +2054,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => {}} // Handler handled by card click
+                          aria-label={q.name}
                           style={{ marginTop: '4px', cursor: 'pointer' }}
                         />
                         <div>
@@ -2154,6 +2188,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                                 alignItems: 'center'
                               }}
                               title="Move Question Up"
+                              aria-label="Move Question Up"
                             >
                               <ChevronUp size={16} />
                             </button>
@@ -2171,6 +2206,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                                 alignItems: 'center'
                               }}
                               title="Move Question Down"
+                              aria-label="Move Question Down"
                             >
                               <ChevronDown size={16} />
                             </button>
@@ -2188,6 +2224,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                                 marginLeft: '4px'
                               }}
                               title="Edit Question"
+                              aria-label="Edit Question"
                             >
                               <Edit2 size={14} />
                             </button>
@@ -2204,6 +2241,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                                 alignItems: 'center'
                               }}
                               title="Delete Question"
+                              aria-label="Delete Question"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -2256,7 +2294,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                     No custom questions configured
                   </h3>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '380px', margin: '0 auto', lineHeight: '1.4' }}>
-                    Click "Add Question" to build follow-up questions for this usability test session.
+                    Click “Add Question” to build follow-up questions for this usability test session.
                   </p>
                 </div>
               )}
@@ -2318,19 +2356,23 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
       {/* Question Builder Modal */}
       {isQuestionModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '24px'
-        }}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="question-modal-title"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '24px'
+          }}>
           <div style={{
             backgroundColor: 'var(--card-bg)',
             border: '1px solid var(--border)',
@@ -2349,12 +2391,13 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
               padding: '20px 24px',
               borderBottom: '1px solid var(--border)'
             }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+              <h3 id="question-modal-title" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
                 {editingQuestion ? 'Edit Pre-Study Question' : 'Add Pre-Study Question'}
               </h3>
-              <button 
+              <button
                 type="button"
                 onClick={() => { setIsQuestionModalOpen(false); resetQuestionForm(); }}
+                aria-label="Close"
                 style={{
                   background: 'none',
                   border: 'none',
@@ -2374,7 +2417,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
               <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 
                 {modalFeedback && (
-                  <div style={{
+                  <div role="status" aria-live="polite" style={{
                     backgroundColor: 'rgba(239, 68, 68, 0.08)',
                     border: '1px solid rgba(239, 68, 68, 0.2)',
                     borderRadius: 'var(--radius-sm)',
@@ -2392,14 +2435,15 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
                 {/* Question Text */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                  <label htmlFor="question-text-input" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
                     Question text
                   </label>
                   <input
+                    id="question-text-input"
                     type="text"
                     value={questionText}
                     onChange={e => setQuestionText(e.target.value)}
-                    placeholder='e.g., "What is your experience level with similar applications?"'
+                    placeholder='e.g., “What is your experience level with similar applications?”'
                     style={{
                       padding: '10px 12px',
                       borderRadius: 'var(--radius-sm)',
@@ -2415,10 +2459,11 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
                 {/* Question Type selection */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                  <label htmlFor="question-type-select" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
                     Question type
                   </label>
                   <select
+                    id="question-type-select"
                     value={questionType}
                     onChange={e => {
                       const val = e.target.value as any;
@@ -2451,7 +2496,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                 {/* Dynamic Choice Options */}
                 {['single_choice', 'multiple_choice', 'dropdown'].includes(questionType) && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                    <label htmlFor="new-option-input" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
                       Answer options
                     </label>
                     
@@ -2473,6 +2518,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                             <button
                               type="button"
                               onClick={() => handleRemoveOption(idx)}
+                              aria-label={`Remove option: ${opt}`}
                               style={{
                                 background: 'none',
                                 border: 'none',
@@ -2496,10 +2542,11 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input
+                        id="new-option-input"
                         type="text"
                         value={newOptionText}
                         onChange={e => setNewOptionText(e.target.value)}
-                        placeholder="Add new option text..."
+                        placeholder="Add new option text…"
                         style={{
                           padding: '8px 12px',
                           borderRadius: 'var(--radius-sm)',
@@ -2539,10 +2586,11 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                     <div style={{ display: 'flex', gap: '16px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                        <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                        <label htmlFor="rating-min-select" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
                           Minimum Value
                         </label>
                         <select
+                          id="rating-min-select"
                           value={ratingMin}
                           onChange={e => setRatingMin(parseInt(e.target.value))}
                           style={{
@@ -2561,10 +2609,11 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                         </select>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                        <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                        <label htmlFor="rating-max-select" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
                           Maximum Value
                         </label>
                         <select
+                          id="rating-max-select"
                           value={ratingMax}
                           onChange={e => setRatingMax(parseInt(e.target.value))}
                           style={{
@@ -2588,14 +2637,15 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
                     <div style={{ display: 'flex', gap: '16px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                        <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                        <label htmlFor="rating-min-label-input" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
                           Min value label
                         </label>
                         <input
+                          id="rating-min-label-input"
                           type="text"
                           value={ratingMinLabel}
                           onChange={e => setRatingMinLabel(e.target.value)}
-                          placeholder='e.g., "Novice"'
+                          placeholder='e.g., “Novice”'
                           style={{
                             padding: '8px 12px',
                             borderRadius: 'var(--radius-sm)',
@@ -2608,14 +2658,15 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                        <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                        <label htmlFor="rating-max-label-input" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
                           Max value label
                         </label>
                         <input
+                          id="rating-max-label-input"
                           type="text"
                           value={ratingMaxLabel}
                           onChange={e => setRatingMaxLabel(e.target.value)}
-                          placeholder='e.g., "Expert"'
+                          placeholder='e.g., “Expert”'
                           style={{
                             padding: '8px 12px',
                             borderRadius: 'var(--radius-sm)',
@@ -2664,19 +2715,23 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
       {/* Task Creation/Editing Modal */}
       {isTaskModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '24px'
-        }}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="task-modal-title"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '24px'
+          }}>
           <div style={{
             backgroundColor: 'var(--card-bg)',
             border: '1px solid var(--border)',
@@ -2695,12 +2750,13 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
               padding: '20px 24px',
               borderBottom: '1px solid var(--border)'
             }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+              <h3 id="task-modal-title" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
                 {editingTask ? 'Edit Task' : 'Add Usability Task'}
               </h3>
-              <button 
+              <button
                 type="button"
                 onClick={() => { setIsTaskModalOpen(false); resetTaskForm(); }}
+                aria-label="Close"
                 style={{
                   background: 'none',
                   border: 'none',
@@ -2732,7 +2788,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                   gap: '16px' 
                 }}>
                   {taskFeedback && (
-                    <div style={{
+                    <div role="status" aria-live="polite" style={{
                       backgroundColor: 'rgba(239, 68, 68, 0.08)',
                       border: '1px solid rgba(239, 68, 68, 0.2)',
                       borderRadius: 'var(--radius-sm)',
@@ -2749,14 +2805,15 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                   )}
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                    <label htmlFor="task-title-input" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
                       Task Title
                     </label>
                     <input
+                      id="task-title-input"
                       type="text"
                       value={taskTitleInput}
                       onChange={e => setTaskTitleInput(e.target.value)}
-                      placeholder='e.g., "Add running shoes to cart"'
+                      placeholder='e.g., “Add running shoes to cart”'
                       style={{
                         padding: '10px 12px',
                         borderRadius: 'var(--radius-sm)',
@@ -2771,13 +2828,14 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                    <label htmlFor="task-instruction-input" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
                       Instruction to Participant
                     </label>
                     <textarea
+                      id="task-instruction-input"
                       value={taskInstructionInput}
                       onChange={e => setTaskInstructionInput(e.target.value)}
-                      placeholder='e.g., "Browse the shoes catalog, click on the red running shoes, select size 9, and click Add to Cart."'
+                      placeholder='e.g., “Browse the shoes catalog, click on the red running shoes, select size 9, and click Add to Cart.”'
                       rows={4}
                       style={{
                         padding: '10px 12px',
@@ -2795,10 +2853,11 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
                   {/* Select Flow Starting Point Dropdown */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                    <label htmlFor="task-flow-starting-point-select" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
                       Flow Starting Point
                     </label>
                     <select
+                      id="task-flow-starting-point-select"
                       value={taskStartingFrameNodeIdInput}
                       onChange={e => {
                         setTaskStartingFrameNodeIdInput(e.target.value);
@@ -2833,11 +2892,12 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                    <label htmlFor="task-starting-frame-node-id-input" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>
                       Starting Frame Node ID
                     </label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input
+                        id="task-starting-frame-node-id-input"
                         type="text"
                         value={taskStartingFrameNodeIdInput}
                         onChange={e => setTaskStartingFrameNodeIdInput(e.target.value)}
@@ -2925,7 +2985,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                           Active Node:
                         </span>
                         <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', textOverflow: 'ellipsis', overflow: 'hidden', display: 'block', whiteSpace: 'nowrap' }}>
-                          {activeSelectorFrame || 'Navigate in player to detect...'}
+                          {activeSelectorFrame || 'Navigate in player to detect…'}
                         </span>
                       </div>
                       <button
@@ -2974,19 +3034,23 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
       {/* Expected Path Recording Modal */}
       {isRecordingModalOpen && recordingTask && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.75)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1001,
-          padding: '20px'
-        }}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="recording-modal-title"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1001,
+            padding: '20px'
+          }}>
           <div style={{
             backgroundColor: 'var(--bg)',
             border: '1px solid var(--border)',
@@ -3017,7 +3081,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                     backgroundColor: 'var(--danger)',
                     animation: 'spin 1.2s infinite ease-in-out'
                   }}></div>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  <span id="recording-modal-title" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '1px' }}>
                     Recording Expected Flow
                   </span>
                   <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>|</span>
@@ -3101,6 +3165,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                                   onClick={() => handleRemoveRecordedFrame(fIdx)}
                                   style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }}
                                   title="Remove Frame"
+                                  aria-label="Remove Frame"
                                 >
                                   <X size={12} />
                                 </button>
@@ -3114,12 +3179,13 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                                   const realIdx = recordingSteps.findIndex(c => c.timestamp === click.timestamp);
                                   return (
                                     <div key={cIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--card-bg)', padding: '4px 8px', borderRadius: '3px', fontSize: '11px' }}>
-                                      <span>🖱️ Clicked <strong>"{click.targetName}"</strong> ({Math.round(click.timestamp / 100) / 10}s)</span>
+                                      <span>🖱️ Clicked <strong>“{click.targetName}”</strong> ({Math.round(click.timestamp / 100) / 10}s)</span>
                                       <button
                                         type="button"
                                         onClick={() => handleRemoveRecordedStep(realIdx)}
                                         style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '1px' }}
                                         title="Remove Click"
+                                        aria-label="Remove Click"
                                       >
                                         <X size={10} />
                                       </button>
@@ -3144,7 +3210,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
                   
                   {/* Toggle frame change */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <label htmlFor="custom-frame-input" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       🔗 Log Frame Navigation
                     </label>
                     
@@ -3165,10 +3231,11 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <input
+                        id="custom-frame-input"
                         type="text"
                         value={customFrameInput}
                         onChange={e => setCustomFrameInput(e.target.value)}
-                        placeholder="Enter target frame name..."
+                        placeholder="Enter target frame name…"
                         style={{
                           padding: '6px 10px',
                           borderRadius: 'var(--radius-sm)',
@@ -3199,7 +3266,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
                   {/* Toggle click event */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <label htmlFor="custom-click-input" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       🖱️ Log Click Event
                     </label>
 
@@ -3220,10 +3287,11 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
 
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <input
+                        id="custom-click-input"
                         type="text"
                         value={customClickInput}
                         onChange={e => setCustomClickInput(e.target.value)}
-                        placeholder="Enter element clicked..."
+                        placeholder="Enter element clicked…"
                         style={{
                           padding: '6px 10px',
                           borderRadius: 'var(--radius-sm)',

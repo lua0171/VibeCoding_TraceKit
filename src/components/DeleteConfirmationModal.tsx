@@ -46,7 +46,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
               disabled={isDeleting}
               style={{ flex: 1 }}
             >
-              {isDeleting ? 'Deleting...' : 'Delete Study'}
+              {isDeleting ? 'Deleting…' : 'Delete Study'}
             </button>
           </div>
         </div>
