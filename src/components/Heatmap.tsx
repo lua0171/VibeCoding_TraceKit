@@ -381,11 +381,15 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl, importedProtot
             }}
           >
             {figmaUrl ? (
-              <div 
+              <div
                 ref={imageRef as any}
-                style={{ 
-                  width: '960px', 
-                  height: '640px', 
+                style={{
+                  // Match the frame's real aspect ratio so PrototypeViewer
+                  // renders it edge-to-edge with no letterboxing -- click
+                  // coordinates are normalized against the visible frame
+                  // area, and any mismatch here shifts every plotted point.
+                  aspectRatio: `${screen.width} / ${screen.height}`,
+                  height: '640px',
                   position: 'relative',
                   backgroundColor: '#000',
                   userSelect: 'none'

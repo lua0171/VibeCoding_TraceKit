@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, Play, Lock, CheckCircle, XCircle, AlertCircle, Sparkles, Download, Info } from 'lucide-react';
 import { db, type Hypothesis, type Study, type Session } from '../db/db';
 import { runAnalysisLoop } from '../lib/analysis';
+import { getFrameName, buildTaskBreakdown, summarizeSurveyAnswers, buildEventsCsv, buildSurveyCsv } from '../lib/resultsAnalytics';
 import { Heatmap, type HeatmapEvent } from './Heatmap';
 
 interface StudyResultsPageProps {
@@ -14,6 +15,7 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
   const [hypotheses, setHypotheses] = useState<Hypothesis[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedScreen, setSelectedScreen] = useState<string>('');
+  const [selectedTask, setSelectedTask] = useState<string>('all');
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState('');
 
@@ -60,6 +62,28 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
     }
   };
 
+  const downloadCsv = (filename: string, csv: string) => {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const slug = (study?.title || 'study').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+  const handleExportEventsCsv = () => {
+    downloadCsv(`${slug}_events.csv`, buildEventsCsv(study, sessions));
+  };
+
+  const handleExportSurveyCsv = () => {
+    downloadCsv(`${slug}_survey_answers.csv`, buildSurveyCsv(sessions));
+  };
+
   const handleLock = async (id: string) => {
     const target = hypotheses.find(h => h.id === id);
     if (!target) return;
@@ -93,7 +117,8 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
     const events: HeatmapEvent[] = [];
     sessions.forEach(s => {
       s.events.forEach((e, idx) => {
-        if (e.type === 'click' && e.screenId === selectedScreen && e.x !== undefined && e.y !== undefined) {
+        const matchesTask = selectedTask === 'all' || e.taskId === selectedTask;
+        if (e.type === 'click' && e.screenId === selectedScreen && matchesTask && e.x !== undefined && e.y !== undefined) {
           events.push({
             id: `ev_${idx}_${s.id}`,
             sessionId: s.id,
@@ -106,20 +131,28 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
       });
     });
 
-    const frameName = study?.importedPrototype?.frames?.find(f => f.id === selectedScreen)?.name || `Figma Frame Node: ${selectedScreen}`;
+    // Use the frame's real pixel dimensions so the heatmap wrapper's aspect
+    // ratio matches what participants actually clicked on -- a mismatched
+    // aspect ratio here re-introduces letterboxing and throws off click
+    // positions (see PrototypeViewer's frameRef fix for the recording side).
+    const matchedFrame = study?.importedPrototype?.frames?.find(f => f.id === selectedScreen);
 
     return {
       screen: {
         id: selectedScreen,
-        name: frameName,
+        name: getFrameName(study, selectedScreen),
         imageUrl: '', // blank since we will use the live iframe rendering
-        width: 960,
-        height: 640
+        width: matchedFrame?.width || 390,
+        height: matchedFrame?.height || 844
       },
       participants,
       events
     };
-  }, [selectedScreen, sessions, study]);
+  }, [selectedScreen, selectedTask, sessions, study]);
+
+  const taskBreakdown = useMemo(() => buildTaskBreakdown(study, sessions), [study, sessions]);
+  const preSurveyResults = useMemo(() => summarizeSurveyAnswers(sessions, 'preSurveyAnswers'), [sessions]);
+  const postSurveyResults = useMemo(() => summarizeSurveyAnswers(sessions, 'postSurveyAnswers'), [sessions]);
 
   if (!study) return <div style={{ padding: '24px' }}>Loading...</div>;
 
@@ -153,17 +186,66 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
               {study.description}
             </p>
           </div>
-          <button 
-            className="btn btn-primary no-print"
-            onClick={() => window.print()}
-          >
-            <Download size={16} /> Export to PDF
-          </button>
+          <div className="no-print" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={handleExportEventsCsv}
+              disabled={sessions.length === 0}
+              title={sessions.length === 0 ? 'No sessions recorded yet' : undefined}
+            >
+              <Download size={16} /> Export Events (CSV)
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={handleExportSurveyCsv}
+              disabled={preSurveyResults.length === 0 && postSurveyResults.length === 0}
+              title={preSurveyResults.length === 0 && postSurveyResults.length === 0 ? 'No survey answers recorded yet' : undefined}
+            >
+              <Download size={16} /> Export Survey Answers (CSV)
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => window.print()}
+            >
+              <Download size={16} /> Export to PDF
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="results-content" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-        
+
+        {/* Task Breakdown */}
+        {taskBreakdown.length > 0 && (
+          <section style={{
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, margin: '0 0 16px 0' }}>Task Breakdown</h2>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr>
+                  <th scope="col" style={{ textAlign: 'left', padding: '6px 8px', color: 'var(--text-muted)', fontWeight: 500, borderBottom: '1px solid var(--border)' }}>Task</th>
+                  <th scope="col" style={{ textAlign: 'right', padding: '6px 8px', color: 'var(--text-muted)', fontWeight: 500, borderBottom: '1px solid var(--border)' }}>Participants</th>
+                  <th scope="col" style={{ textAlign: 'right', padding: '6px 8px', color: 'var(--text-muted)', fontWeight: 500, borderBottom: '1px solid var(--border)' }}>Clicks Recorded</th>
+                </tr>
+              </thead>
+              <tbody>
+                {taskBreakdown.map(row => (
+                  <tr key={row.id}>
+                    <td style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', color: 'var(--text)' }}>{row.title}</td>
+                    <td style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', textAlign: 'right', color: 'var(--text)' }}>{row.participants}</td>
+                    <td style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', textAlign: 'right', color: 'var(--text)' }}>{row.clicks}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+
         {/* Heatmaps Area */}
         <section style={{
           backgroundColor: 'var(--card-bg)',
@@ -175,30 +257,56 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>Click Heatmaps</h2>
             
-            {uniqueScreens.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="no-print">
-                <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>Select Screen:</span>
-                <select
-                  value={selectedScreen}
-                  onChange={(e) => setSelectedScreen(e.target.value)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border)',
-                    backgroundColor: 'var(--input-bg)',
-                    color: 'var(--text)',
-                    fontSize: '13px',
-                    outline: 'none'
-                  }}
-                >
-                  {uniqueScreens.map(scrId => (
-                    <option key={scrId} value={scrId}>
-                      Figma Node {scrId}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }} className="no-print">
+              {study.tasks && study.tasks.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>Select Task:</span>
+                  <select
+                    value={selectedTask}
+                    onChange={(e) => setSelectedTask(e.target.value)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border)',
+                      backgroundColor: 'var(--input-bg)',
+                      color: 'var(--text)',
+                      fontSize: '13px',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="all">All Tasks</option>
+                    {study.tasks.map(t => (
+                      <option key={t.id} value={t.id}>{t.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {uniqueScreens.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>Select Screen:</span>
+                  <select
+                    value={selectedScreen}
+                    onChange={(e) => setSelectedScreen(e.target.value)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border)',
+                      backgroundColor: 'var(--input-bg)',
+                      color: 'var(--text)',
+                      fontSize: '13px',
+                      outline: 'none'
+                    }}
+                  >
+                    {uniqueScreens.map(scrId => (
+                      <option key={scrId} value={scrId}>
+                        {getFrameName(study, scrId)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
 
           {sessions.length === 0 ? (
@@ -231,6 +339,59 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
             </div>
           )}
         </section>
+
+        {/* Survey Results */}
+        {(preSurveyResults.length > 0 || postSurveyResults.length > 0) && (
+          <section style={{
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, margin: '0 0 16px 0' }}>Survey Results</h2>
+
+            {preSurveyResults.length > 0 && (
+              <div style={{ marginBottom: postSurveyResults.length > 0 ? '24px' : 0 }}>
+                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 12px 0' }}>
+                  Pre-Study Questions
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {preSurveyResults.map(q => (
+                    <div key={q.questionId}>
+                      <p style={{ fontSize: '14px', fontWeight: 600, margin: '0 0 6px 0' }}>{q.questionText}</p>
+                      <ul style={{ paddingLeft: '20px', margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
+                        {q.answers.map((a, i) => (
+                          <li key={i}>{a.participant}: {a.answer}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {postSurveyResults.length > 0 && (
+              <div>
+                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 12px 0' }}>
+                  Post-Study Questions
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {postSurveyResults.map(q => (
+                    <div key={q.questionId}>
+                      <p style={{ fontSize: '14px', fontWeight: 600, margin: '0 0 6px 0' }}>{q.questionText}</p>
+                      <ul style={{ paddingLeft: '20px', margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
+                        {q.answers.map((a, i) => (
+                          <li key={i}>{a.participant}: {a.answer}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* AI Hypothesis Loop */}
         <section className="print-break-before" style={{
