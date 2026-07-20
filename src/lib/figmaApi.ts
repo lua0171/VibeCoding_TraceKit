@@ -25,6 +25,14 @@ export interface ImportedPrototype {
   frames: ImportedFrame[];
 }
 
+// A hotspot's targetFrameId can reference a Figma node that isn't a page-level
+// frame (e.g. a mis-linked prototype connection pointing at an icon component),
+// in which case it will never appear in `frames`. Returns null rather than
+// letting callers fall back to an arbitrary frame.
+export function resolveNavigationTarget(targetFrameId: string, frames: { id: string }[]): string | null {
+  return frames.some(f => f.id === targetFrameId) ? targetFrameId : null;
+}
+
 export function extractFileKey(url: string): string | null {
   try {
     const parsed = new URL(url);
@@ -58,8 +66,26 @@ function findFrames(node: any, frames: any[] = []): any[] {
   return frames;
 }
 
+// A node can carry both the legacy `transitionNodeID` field and the modern
+// `interactions` array. `interactions` is what Figma's current Prototype tab
+// actually writes and can disagree with `transitionNodeID`, which may hold a
+// stale or component-inherited value -- so `interactions` takes priority and
+// `transitionNodeID` is only a fallback when no ON_CLICK/NODE interaction exists.
+export function findClickTarget(node: any): string | undefined {
+  if (node.interactions && Array.isArray(node.interactions)) {
+    for (const inter of node.interactions) {
+      if (inter.trigger && inter.trigger.type === 'ON_CLICK' && Array.isArray(inter.actions)) {
+        const nodeAction = inter.actions.find((act: any) => act.type === 'NODE' && act.destinationId);
+        if (nodeAction) return nodeAction.destinationId;
+      }
+    }
+  }
+  return node.transitionNodeID || undefined;
+}
+
 function extractHotspots(node: any, frameBox: any, hotspots: ImportedHotspot[] = []): ImportedHotspot[] {
-  if (node.transitionNodeID && frameBox) {
+  const targetFrameId = frameBox ? findClickTarget(node) : undefined;
+  if (targetFrameId) {
     const box = node.absoluteBoundingBox;
     if (box) {
       const x = (box.x - frameBox.x) / frameBox.width;
@@ -74,39 +100,9 @@ function extractHotspots(node: any, frameBox: any, hotspots: ImportedHotspot[] =
         y: Math.max(0, Math.min(1, y)),
         width: Math.max(0, Math.min(1, width)),
         height: Math.max(0, Math.min(1, height)),
-        targetFrameId: node.transitionNodeID
+        targetFrameId
       });
     }
-  }
-
-  if (node.interactions && Array.isArray(node.interactions) && frameBox) {
-    node.interactions.forEach((inter: any) => {
-      if (inter.trigger && inter.trigger.type === 'ON_CLICK' && inter.actions) {
-        inter.actions.forEach((act: any) => {
-          if (act.type === 'NODE' && act.destinationId) {
-            const box = node.absoluteBoundingBox;
-            if (box) {
-              const x = (box.x - frameBox.x) / frameBox.width;
-              const y = (box.y - frameBox.y) / frameBox.height;
-              const width = box.width / frameBox.width;
-              const height = box.height / frameBox.height;
-
-              if (!hotspots.some(h => h.id === node.id)) {
-                hotspots.push({
-                  id: node.id,
-                  name: node.name || 'Hotspot',
-                  x: Math.max(0, Math.min(1, x)),
-                  y: Math.max(0, Math.min(1, y)),
-                  width: Math.max(0, Math.min(1, width)),
-                  height: Math.max(0, Math.min(1, height)),
-                  targetFrameId: act.destinationId
-                });
-              }
-            }
-          }
-        });
-      }
-    });
   }
 
   if (node.children) {
@@ -136,7 +132,10 @@ export async function importPrototype(figmaUrl: string, token: string): Promise<
     throw new Error('Invalid Figma URL format. Please make sure the URL contains /file/ or /proto/ with a valid file key.');
   }
 
-  const docResponse = await fetch(`https://api.figma.com/v1/files/${fileKey}?depth=3`, {
+  // No `depth` param -- fetch the full node tree. A shallow depth cuts off
+  // interactive elements nested inside reusable component instances (e.g. a
+  // bottom nav bar's individual icons), silently dropping their hotspots.
+  const docResponse = await fetch(`https://api.figma.com/v1/files/${fileKey}`, {
     headers: {
       'X-Figma-Token': token
     }

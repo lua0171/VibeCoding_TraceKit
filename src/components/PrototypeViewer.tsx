@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { MOCK_PROTOTYPE_FRAMES } from '../lib/prototype';
+import { resolveNavigationTarget } from '../lib/figmaApi';
 import { User, LogOut, Search, ArrowLeft, Sparkles } from 'lucide-react';
 import { type Study } from '../db/db';
 
@@ -21,6 +22,14 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
   readOnly = false
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  // The outer container is flex-centered and can have a different aspect
+  // ratio than the frame image itself (e.g. full-viewport during a real
+  // session vs. a fixed box during heatmap replay), so the image is
+  // letterboxed inside it by varying amounts. Click coordinates must be
+  // normalized against the actual rendered frame area (this ref), not the
+  // outer container, or the same 0-1 coordinate lands in different spots
+  // depending on which container happens to be hosting the viewer.
+  const frameRef = useRef<HTMLDivElement>(null);
   const [showHints, setShowHints] = useState(false);
 
   const isImported = !!(importedPrototype && importedPrototype.frames && importedPrototype.frames.length > 0);
@@ -44,9 +53,9 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
   // hits are now handled directly by each hotspot's own <button onClick>,
   // which stops propagation so this only ever sees misses.
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (readOnly || !containerRef.current) return;
+    if (readOnly || !frameRef.current) return;
 
-    const rect = containerRef.current.getBoundingClientRect();
+    const rect = frameRef.current.getBoundingClientRect();
     const clickX = (e.clientX - rect.left) / rect.width;
     const clickY = (e.clientY - rect.top) / rect.height;
 
@@ -66,15 +75,19 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
       // what the heatmap needs to reflect where within the element people clicked.
       let clickX = hs.x + hs.width / 2;
       let clickY = hs.y + hs.height / 2;
-      if (e.detail !== 0 && containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
+      if (e.detail !== 0 && frameRef.current) {
+        const rect = frameRef.current.getBoundingClientRect();
         clickX = (e.clientX - rect.left) / rect.width;
         clickY = (e.clientY - rect.top) / rect.height;
       }
       onClick(clickX, clickY, hs.name, true);
     }
     if (onNavigate) {
-      onNavigate(hs.targetFrameId);
+      const frames = isImported ? importedPrototype!.frames : MOCK_PROTOTYPE_FRAMES;
+      const resolved = resolveNavigationTarget(hs.targetFrameId, frames);
+      if (resolved) {
+        onNavigate(resolved);
+      }
     }
   };
 
@@ -134,7 +147,7 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
       }}
     >
       {isImported && activeImportedFrame ? (
-        <div style={{
+        <div ref={frameRef} style={{
           position: 'relative',
           aspectRatio: `${aspect}`,
           maxHeight: '100%',
@@ -156,7 +169,7 @@ export const PrototypeViewer: React.FC<PrototypeViewerProps> = ({
           {renderHotspots()}
         </div>
       ) : (
-        <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        <div ref={frameRef} style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
             {activeMockFrame?.layoutType === 'home' && renderHomeLayout()}
             {activeMockFrame?.layoutType === 'dashboard' && renderDashboardLayout()}
