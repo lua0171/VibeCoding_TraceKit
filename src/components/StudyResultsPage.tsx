@@ -99,7 +99,8 @@ export const StudyResultsPage: React.FC<StudyResultsPageProps> = ({ studyId, onB
             sessionId: s.id,
             x: e.x,
             y: e.y,
-            timestamp: e.timestamp
+            timestamp: e.timestamp,
+            label: e.nodeId
           });
         }
       });

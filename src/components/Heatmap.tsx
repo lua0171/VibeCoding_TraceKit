@@ -52,6 +52,8 @@ export interface HeatmapEvent {
   y: number;
   /** Timestamp in ms since epoch or ISO string */
   timestamp: number | string;
+  /** Name of the clicked element/hotspot, if known (from TrackedEvent.nodeId) */
+  label?: string;
 }
 
 export interface HeatmapData {
@@ -100,6 +102,33 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl, importedProtot
     () => events.filter((e) => activeParticipantIds.has(e.sessionId)),
     [events, activeParticipantIds]
   );
+
+  // Non-visual equivalent of the canvas heatmap: a text/table summary of
+  // where clicks concentrated. Groups by the clicked element's name when
+  // known (TrackedEvent.nodeId, passed through as `label`), otherwise
+  // falls back to a coarse 3x3 zone so it still works for demo/mock data.
+  const clickZoneSummary = useMemo(() => {
+    if (filteredEvents.length === 0) return [];
+
+    const zoneName = (e: HeatmapEvent): string => {
+      if (e.label) return e.label;
+      const col = e.x < 1 / 3 ? 'left' : e.x < 2 / 3 ? 'center' : 'right';
+      const row = e.y < 1 / 3 ? 'top' : e.y < 2 / 3 ? 'middle' : 'bottom';
+      if (row === 'middle' && col === 'center') return 'Center';
+      return `${row.charAt(0).toUpperCase()}${row.slice(1)}-${col}`;
+    };
+
+    const counts = new Map<string, number>();
+    filteredEvents.forEach((e) => {
+      const zone = zoneName(e);
+      counts.set(zone, (counts.get(zone) || 0) + 1);
+    });
+
+    return Array.from(counts.entries())
+      .map(([zone, count]) => ({ zone, count, percent: Math.round((count / filteredEvents.length) * 100) }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [filteredEvents]);
 
   const toggleParticipant = useCallback((id: string) => {
     setActiveParticipantIds((prev) => {
@@ -380,6 +409,8 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl, importedProtot
               ref={canvasRef}
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
+              role="img"
+              aria-label={`Click density heatmap for ${screen.name}, ${filteredEvents.length} clicks. See the click summary table below for a non-visual breakdown.`}
               style={{ position: 'absolute', left: 0, top: 0, cursor: 'crosshair' }}
             />
             {hover && (
@@ -480,6 +511,35 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data, figmaUrl, importedProtot
       <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
         {filteredEvents.length} of {events.length} click events shown · data processed locally
       </p>
+
+      {/* Text/table equivalent of the canvas heatmap above, so the click
+          density finding isn't visual-only (WCAG 2.2 AA, PRD "accessible
+          charts and heatmaps" requirement). */}
+      {clickZoneSummary.length > 0 && (
+        <div>
+          <h3 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}>
+            Click Summary (Top {clickZoneSummary.length} Zones)
+          </h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr>
+                <th scope="col" style={{ textAlign: 'left', padding: '6px 8px', color: 'var(--text-muted)', fontWeight: 500, borderBottom: '1px solid var(--border)' }}>Zone / Element</th>
+                <th scope="col" style={{ textAlign: 'right', padding: '6px 8px', color: 'var(--text-muted)', fontWeight: 500, borderBottom: '1px solid var(--border)' }}>Clicks</th>
+                <th scope="col" style={{ textAlign: 'right', padding: '6px 8px', color: 'var(--text-muted)', fontWeight: 500, borderBottom: '1px solid var(--border)' }}>% of total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clickZoneSummary.map((row) => (
+                <tr key={row.zone}>
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', color: 'var(--text)' }}>{row.zone}</td>
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', textAlign: 'right', color: 'var(--text)' }}>{row.count}</td>
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', textAlign: 'right', color: 'var(--text)' }}>{row.percent}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
