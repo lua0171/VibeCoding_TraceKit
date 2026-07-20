@@ -3,6 +3,7 @@ import { ArrowLeft, ClipboardList, Smartphone, HelpCircle, Loader2, Save, AlertC
 import { db, type Study, type SurveyQuestion, type StudyTask, type ClickedElement, type RecordedPath } from '../db/db';
 import { PrototypeViewer } from './PrototypeViewer';
 import { importPrototype } from '../lib/figmaApi';
+import { getEmbedUrl, isValidFigmaUrl, getParticipantLink } from '../lib/links';
 
 
 
@@ -155,33 +156,6 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
     };
     fetchStudy();
   }, [studyId]);
-
-  // Convert standard Figma links to official embed URLs
-  const getEmbedUrl = (url: string, nodeId?: string): string => {
-    if (!url) return '';
-    let targetUrl = url;
-    if (nodeId) {
-      const separator = url.includes('?') ? '&' : '?';
-      if (!url.includes('node-id=')) {
-        targetUrl = `${url}${separator}node-id=${encodeURIComponent(nodeId)}`;
-      }
-    }
-    if (targetUrl.includes('figma.com/embed')) {
-      return targetUrl;
-    }
-    return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(targetUrl)}`;
-  };
-
-  // Check if URL is valid Figma link
-  const isValidFigmaUrl = (url: string): boolean => {
-    if (!url) return false;
-    try {
-      const parsed = new URL(url);
-      return parsed.hostname.endsWith('figma.com');
-    } catch (_) {
-      return false;
-    }
-  };
 
   // Modal states for Question Builder
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
@@ -452,8 +426,7 @@ export const StudyConfiguration: React.FC<StudyConfigurationProps> = ({ studyId,
   const [linkCopied, setLinkCopied] = useState(false);
 
   const handleCopyParticipantLink = () => {
-    const participantUrl = `${window.location.origin}${window.location.pathname}?session=${studyId}`;
-    navigator.clipboard.writeText(participantUrl)
+    navigator.clipboard.writeText(getParticipantLink(studyId))
       .then(() => {
         setLinkCopied(true);
         setTimeout(() => setLinkCopied(false), 2000);

@@ -124,9 +124,9 @@ Review & Export Results
 
 | Layer | Choice |
 |---|---|
-| Frontend | React + Tailwind CSS |
-| Backend | Node.js/Express |
-| Database | SQLite |
+| Frontend | React + a custom CSS design system (design tokens as CSS custom properties in `index.css`) |
+| Backend | localStorage-backed data layer (`db.ts`) today; Node.js/Express + SQLite is the intended target once a real backend is built |
+| Database | SQLite (planned; not yet implemented) |
 | Local AI | Ollama (default, fully local) |
 | BYOK AI (optional) | Any OpenAI-compatible endpoint (base URL + API key + model name) — one generic adapter covers OpenAI, Groq, OpenRouter, etc. |
 | Deployment | Runs entirely on the researcher's own device (Antigravity as the vibe-coding dev platform). No cloud hosting required for the core product. |

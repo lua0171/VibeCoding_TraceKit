@@ -3,6 +3,7 @@ import { Plus, Search, Calendar, FileText, Edit2, Trash2, Check, X, Minus } from
 import { db, type Study } from '../db/db';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import { CreateStudyModal } from './CreateStudyModal';
+import { getEmbedUrl, getParticipantLink } from '../lib/links';
 
 interface DashboardProps {
   onNavigateToStudyConfiguration: (studyId: string) => void;
@@ -92,15 +93,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     } catch (e) {
       return isoString;
     }
-  };
-
-  // Convert standard Figma links to official embed URLs
-  const getEmbedUrl = (url: string): string => {
-    if (!url) return '';
-    if (url.includes('figma.com/embed')) {
-      return url;
-    }
-    return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(url)}`;
   };
 
   // Filter studies based on search query
@@ -421,7 +413,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <input
                     type="text"
                     readOnly
-                    value={`${window.location.origin}${window.location.pathname}?session=${selectedStudy.id}`}
+                    value={getParticipantLink(selectedStudy.id)}
                     style={{
                       flex: 1,
                       padding: '8px 12px',
@@ -436,8 +428,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     type="button"
                     className="btn btn-primary"
                     onClick={() => {
-                      const participantUrl = `${window.location.origin}${window.location.pathname}?session=${selectedStudy.id}`;
-                      navigator.clipboard.writeText(participantUrl).then(() => {
+                      navigator.clipboard.writeText(getParticipantLink(selectedStudy.id)).then(() => {
                         setDetailsLinkCopied(true);
                         setTimeout(() => setDetailsLinkCopied(false), 2000);
                       });

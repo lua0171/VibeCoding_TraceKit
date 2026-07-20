@@ -6,7 +6,7 @@ Privacy-first, local-only usability testing tool (Figma prototype playback + cli
 
 ## Current implementation status (as of 2026-07-20)
 
-Most PRD modules now have real, working implementations — this moved fast. React 19 + Vite + TypeScript, `oxlint` for linting, no backend/SQLite yet (`src/db/db.ts` is still a `localStorage`-backed mock with a simulated 400ms delay). No Tailwind installed despite the PRD listing it — styling stays a hand-written CSS custom-property system in `src/index.css`.
+Most PRD modules now have real, working implementations — this moved fast. React 19 + Vite + TypeScript, `oxlint` for linting, no backend/SQLite yet (`src/db/db.ts` is still a `localStorage`-backed mock with a simulated 400ms delay). Styling is a hand-written CSS custom-property system in `src/index.css` (no Tailwind — the PRD used to claim Tailwind, corrected 2026-07-20 to match what's actually built).
 
 **Prototype rendering pivoted away from Figma's iframe embed entirely.** The live architecture fetches frames via the Figma REST API and renders them natively in the DOM — no iframe, no cross-origin restrictions, no Figma OAuth app/client-id needed:
 - `src/lib/figmaApi.ts`: `importPrototype(figmaUrl, token)` calls Figma's REST API (`GET /v1/files/{key}`, `GET /v1/images/{key}`) using a **Figma personal access token**, configured in Settings (gear icon) and stored at `localStorage['tracekit_figma_token']`.
@@ -30,10 +30,9 @@ These are gone now, not just "dead but present" — don't go looking for them: `
 
 Still present from before that: **`src/components/EditStudyModal.tsx` and `src/components/CreateStudyPlaceholder.tsx`** remain unimported dead code, not yet cleaned up.
 
-## Known duplication (not dead, but drifted from a single source of truth)
+## Duplication cleanup (fixed 2026-07-20)
 
-- **Two separate "Copy Participant Link" UIs**: `Dashboard.tsx` (in the study details modal) and `StudyConfiguration.tsx` (in the prototype section) — each with its own copy-to-clipboard implementation.
-- **Two separate `getEmbedUrl`-style functions**: `Dashboard.tsx` (inline) and `StudyConfiguration.tsx` (inline, with its own `nodeId` param). No shared helper anymore since `lib/figma.ts` was deleted — if touching Figma-URL-building logic, check both.
+`getEmbedUrl`/`isValidFigmaUrl` and the participant-link URL builder were each duplicated between `Dashboard.tsx` and `StudyConfiguration.tsx`. Consolidated into `src/lib/links.ts` (`getEmbedUrl`, `isValidFigmaUrl`, `getParticipantLink`), imported by both. The "Copy Participant Link" UI itself is still two separate implementations (Dashboard's is a readonly input + copy button, StudyConfiguration's is just a button) — only the URL-building logic was shared, not the JSX, since the presentations are intentionally different.
 
 ## Conventions observed so far
 
